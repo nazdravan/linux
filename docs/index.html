@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux pentru sala de informatică</title>
+<meta name="description" content="Scripturi gratuite care transformă calculatoarele slabe ale școlii (2 GB RAM, HDD) în calculatoare cu Linux care arată ca Windows 10, cu LibreOffice și un cont de elev care se resetează după fiecare oră.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #18191b;
+  --surface: #222427;
+  --surface-2: #2c2f33;
+  --ink: #eff0f1;
+  --muted: #a4a6ab;
+  --accent: #ff4a1f;
+  --accent-ink: #18191b;
+  --field: #eff0f1;
+  --field-ink: #18191b;
+
+  --step-small: clamp(0.875rem, 0.85rem + 0.1vw, 0.9375rem);
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+  --step-sub: clamp(1.75rem, 1.3rem + 1.5vw, 2.75rem);
+  --step-head: clamp(2.25rem, 1.3rem + 3.2vw, 4rem);
+  --step-display: clamp(2.5rem, 0.9rem + 3.9vw, 4.75rem);
+
+  --font: "Albert Sans", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace; /* taste-skill-ignore: used only for real shell commands in code/pre */
+  --m: clamp(16px, 3vw, 40px);
+  --gap-section: clamp(104px, 13vw, 200px);
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overflow-x: clip; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: var(--step-body); line-height: 1.5;
+  border-top: 6px solid var(--accent);
+  overflow-x: clip;
+}
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.035em; line-height: 1.0; margin: 0; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+.wrap { padding-inline: var(--m); }
+
+/* the motif: the 3×3 grid of the student's Start button */
+.grid9 { display: inline-grid; grid-template-columns: repeat(3, 1fr); gap: 12%; aspect-ratio: 1; }
+.grid9 i { background: currentColor; }
+.sq { display: inline-block; width: .5em; height: .5em; background: var(--accent); flex: none; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 14px;
+  min-height: 56px; padding: 0 26px;
+  background: var(--accent); color: var(--accent-ink);
+  font: 600 var(--step-body)/1 var(--font); letter-spacing: -0.01em;
+  text-decoration: none; border: 0; border-radius: 0; cursor: pointer;
+  transition: transform .2s var(--ease), background-color .2s var(--ease);
+}
+.btn .grid9 { width: 18px; color: var(--accent-ink); transition: transform .35s var(--ease); }
+.btn:hover { background: #ff6a45; }
+.btn:hover .grid9 { transform: rotate(90deg); }
+.btn:active { transform: translateY(2px); }
+.btn.light { background: var(--field); color: var(--field-ink); }
+.btn.light:hover { background: #fff; }
+.link { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px; text-decoration-color: var(--accent); transition: text-underline-offset .2s var(--ease); }
+.link:hover { text-underline-offset: 8px; }
+
+/* ---------- nav ---------- */
+.nav { display: flex; align-items: center; gap: 32px; padding: 20px var(--m); }
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 1.25rem; letter-spacing: -0.02em; text-decoration: none; }
+.brand .grid9 { width: 24px; color: var(--accent); }
+.nav ul { display: flex; gap: 28px; list-style: none; margin: 0 0 0 auto; padding: 0; font-size: var(--step-small); }
+.nav ul a { text-decoration: none; color: var(--muted); transition: color .2s; }
+.nav ul a:hover { color: var(--ink); }
+.nav .btn { min-height: 44px; padding: 0 18px; font-size: var(--step-small); gap: 0; }
+
+/* ---------- hero ---------- */
+.hero {
+  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 4vw, 64px);
+  align-items: center;
+  padding: clamp(40px, 6vw, 88px) 0 0 var(--m);
+}
+.hero-text { padding-block: 0 clamp(24px, 3vw, 40px); }
+.hero h1 { font-size: var(--step-display); max-width: 15ch; }
+.hero .lede { margin-top: 32px; font-size: var(--step-lead); line-height: 1.35; max-width: 31ch; }
+.facts { list-style: none; margin: 36px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px 28px; }
+.facts li { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+.hero-actions { margin-top: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px 32px; }
+.stage {
+  position: relative; margin: 0;
+  background: var(--accent);
+  padding: clamp(48px, 6vw, 96px) 0;
+  display: grid; align-items: center;
+}
+.stage .shot { width: 112%; margin-left: -18%; transform: translateY(var(--py, 0px)); }
+.stage .shot img { width: 100%; }
+.stage .corner { position: absolute; right: var(--m); top: clamp(14px, 1.6vw, 28px); width: clamp(28px, 3vw, 48px); color: var(--accent-ink); }
+
+/* ---------- band of squares ---------- */
+.squares { display: grid; grid-template-columns: repeat(18, 1fr); gap: 8px; padding-inline: var(--m); margin-top: 8px; }
+.squares i { aspect-ratio: 1; background: var(--surface); transition: background-color .5s var(--ease); }
+.squares i.on { background: var(--accent); }
+
+/* ---------- showcase ---------- */
+.showcase { margin-top: var(--gap-section); display: grid; grid-template-columns: 5fr 7fr; gap: clamp(32px, 5vw, 80px); align-items: end; }
+.showcase-title { font-size: var(--step-head); max-width: 13ch; margin-bottom: 48px; }
+.picks { list-style: none; margin: 0; padding: 0; }
+.picks button {
+  display: flex; align-items: center; gap: 16px; width: 100%;
+  background: none; border: 0; padding: 4px 0; cursor: pointer; text-align: left;
+  font: 600 var(--step-sub)/1.15 var(--font); letter-spacing: -0.035em; color: var(--muted);
+  transition: color .25s var(--ease);
+}
+.picks button .sq { width: .32em; height: .32em; background: var(--surface-2); transition: background-color .25s, transform .25s var(--ease); }
+.picks button:hover { color: var(--ink); }
+.picks button[aria-selected="true"] { color: var(--ink); }
+.picks button[aria-selected="true"] .sq { background: var(--accent); transform: rotate(90deg); }
+.fact { margin-top: 32px; max-width: 40ch; min-height: 4.5em; }
+.view { position: relative; background: var(--field); aspect-ratio: 1 / 1; overflow: hidden; transition: background-color .6s var(--ease); }
+.view[data-c="1"] { background: var(--accent); }
+.view[data-c="2"] { background: var(--surface-2); }
+.view figure { margin: 0; position: absolute; inset: 14% 0 14% 8%; }
+.view img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: left top; opacity: 0; transition: opacity 1.6s var(--ease); }
+.view img.on { opacity: 1; }
+.view .grid9 { position: absolute; left: 24px; bottom: 24px; width: 40px; color: var(--field-ink); }
+.view[data-c="2"] .grid9, .view[data-c="2"] .cap { color: var(--ink); }
+.view .cap { position: absolute; left: 0; top: 0; padding: 22px 24px; font-size: var(--step-small); font-weight: 500; color: var(--field-ink); }
+
+/* ---------- install ---------- */
+.install { margin-top: var(--gap-section); }
+.install-head { display: grid; grid-template-columns: 5fr 1fr 6fr; gap: 0 32px; align-items: end; margin-bottom: 48px; }
+.install-head h2 { font-size: var(--step-head); }
+.install-head p { grid-column: 3; max-width: 46ch; }
+.ways { display: grid; grid-template-columns: 7fr 5fr; gap: 12px; }
+.way { padding: clamp(28px, 3.4vw, 48px); display: flex; flex-direction: column; gap: 20px; }
+.way.in-1 { background: var(--accent); color: var(--accent-ink); }
+.way.in-2 { background: var(--surface); }
+.way h3 { font-size: var(--step-sub); display: flex; align-items: center; gap: 16px; }
+.way h3 .grid9 { width: .7em; color: currentColor; }
+.way > p { max-width: 46ch; }
+.code { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: #111214; color: var(--ink); padding: 16px 16px 16px 20px; }
+.code pre { margin: 0; overflow-x: auto; scrollbar-width: thin; }
+.code code { font: 500 .95rem/1.5 var(--mono); white-space: pre-wrap; word-break: break-all; }
+.code .p { color: var(--accent); }
+.code .btn { min-height: 40px; padding: 0 14px; font-size: var(--step-small); }
+.way .alt { font-size: var(--step-small); }
+.way .alt summary { cursor: pointer; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; }
+.way .alt .code { margin-top: 12px; }
+.way ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.way li { display: flex; gap: 12px; align-items: baseline; }
+.way li .sq { width: 10px; height: 10px; }
+.way.in-1 li .sq { background: var(--accent-ink); }
+
+/* ---------- switches ---------- */
+.switches { margin-top: var(--gap-section); }
+.switches-head { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding-inline: var(--m); margin-bottom: 48px; align-items: end; }
+.switches-head h2 { font-size: var(--step-head); max-width: 12ch; }
+.switches-head p { max-width: 46ch; }
+.band {
+  display: grid; grid-template-columns: repeat(12, 1fr); align-items: center;
+  min-height: 18vh; padding: 28px var(--m);
+  background: var(--bg); color: var(--muted);
+  cursor: pointer;
+  transition: background-color .45s var(--ease), color .45s var(--ease);
+}
+.band .say { grid-column: 1 / 11; }
+.band .say b { display: block; font-size: var(--step-sub); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+.band .then { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .45s var(--ease); }
+.band .then > span { overflow: hidden; }
+.band .then span span { display: block; padding-top: 10px; font-size: var(--step-body); }
+.band[aria-checked="true"] .then { grid-template-rows: 1fr; }
+.band[aria-checked="true"] { color: var(--ink); }
+.band[aria-checked="true"].c1 { background: var(--accent); color: var(--accent-ink); }
+.band[aria-checked="true"].c2 { background: var(--field); color: var(--field-ink); }
+.band[aria-checked="true"].c3 { background: var(--surface-2); color: var(--ink); }
+.band:hover { color: var(--ink); }
+.band[aria-checked="true"].c1:hover { color: var(--accent-ink); }
+.band[aria-checked="true"].c2:hover { color: var(--field-ink); }
+.toggle { grid-column: 11 / 13; justify-self: end; width: 2.6em; height: 1.4em; font-size: var(--step-sub); background: var(--surface-2); position: relative; transition: background-color .3s; }
+.toggle::after { content: ""; position: absolute; top: .2em; left: .2em; width: 1em; height: 1em; background: var(--muted); transition: transform .3s var(--ease), background-color .3s; }
+.band[aria-checked="true"] .toggle { background: currentColor; }
+.band[aria-checked="true"] .toggle::after { transform: translateX(1.2em); background: var(--surface-2); }
+.band[aria-checked="true"].c1 .toggle::after { background: var(--accent); }
+.band[aria-checked="true"].c2 .toggle::after { background: var(--field); }
+.cmd { margin: 0 var(--m); padding: 28px; background: var(--surface); display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; }
+.cmd p { font-size: var(--step-small); color: var(--muted); }
+.cmd pre { margin: 0; overflow-x: auto; }
+.cmd code { font: 500 var(--step-body)/1.4 var(--mono); white-space: pre-wrap; word-break: break-all; }
+.cmd code .v { color: var(--accent); }
+.copy { min-height: 44px; padding: 0 16px; font-size: var(--step-small); }
+
+/* ---------- live: the reset ---------- */
+.live { margin-top: var(--gap-section); display: grid; grid-template-columns: 5fr 7fr; gap: clamp(32px, 5vw, 80px); align-items: center; }
+.live h2 { font-size: var(--step-head); max-width: 11ch; }
+.live-intro > p { margin-top: 28px; max-width: 40ch; }
+.live-intro > p + p { margin-top: 14px; color: var(--muted); }
+.actions { margin-top: 32px; display: grid; gap: 8px; }
+.actions button {
+  display: flex; align-items: center; gap: 14px; text-align: left; min-height: 52px; padding: 10px 18px;
+  background: var(--surface); color: var(--ink); border: 0; cursor: pointer;
+  font: 400 var(--step-body)/1.3 var(--font);
+  transition: background-color .2s var(--ease), transform .15s var(--ease), color .2s;
+}
+.actions button .sq { width: 10px; height: 10px; background: var(--surface-2); transition: background-color .2s; }
+.actions button:hover { background: var(--surface-2); }
+.actions button:active { transform: translateY(2px); }
+.actions button.done { color: var(--muted); }
+.actions button.done .sq { background: var(--accent); }
+.actions button:disabled { cursor: default; }
+.actions .btn { margin-top: 10px; justify-content: center; background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.actions .btn:hover { background: #ff6a45; }
+.status { margin-top: 18px; min-height: 3em; font-weight: 500; }
+.desk-stage { background: var(--accent); padding: clamp(20px, 4vw, 56px); }
+.desk {
+  position: relative; aspect-ratio: 16 / 10; overflow: hidden;
+  background: #0b4f9c; color: #fff;
+  font: 400 13px/1.25 var(--font);
+  transition: background-color .5s var(--ease);
+  user-select: none;
+}
+.desk.pink { background: #c2569a; }
+.desk-icons { position: absolute; top: 10px; left: 8px; bottom: 44px; display: flex; flex-direction: column; flex-wrap: wrap; align-content: flex-start; gap: 6px 4px; }
+.di { width: 82px; display: grid; justify-items: center; gap: 4px; text-align: center; padding: 4px 2px; transition: opacity .35s, transform .35s var(--ease); }
+.di.gone { opacity: 0; transform: scale(.6); }
+.di.new { animation: pop .35s var(--ease); }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+.ico { width: 34px; height: 34px; display: grid; place-items: center; font: 600 15px/1 var(--font); color: #fff; border-radius: 3px; }
+.ico.pc { background: #4aa3df; } .ico.trash { background: #9aa7b4; }
+.ico.dir { background: #f1c232; border-radius: 2px 8px 2px 2px; }
+.ico.w { background: #2b5797; } .ico.x { background: #1e7145; } .ico.p { background: #d24726; }
+.ico.ff { background: #e66000; border-radius: 50%; } .ico.paint { background: #fff; color: #c2569a; }
+.ico.doc { background: #fff; color: #2b5797; }
+.desk-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #202020; display: flex; align-items: center; gap: 6px; padding: 0 8px; }
+.desk-bar .grid9 { width: 20px; color: #fff; margin-right: 8px; }
+.desk-bar .t { width: 22px; height: 22px; border-radius: 2px; }
+.desk-bar .clock { margin-left: auto; text-align: right; font-size: 11px; line-height: 1.2; }
+.desk-win {
+  position: absolute; right: 14px; top: 14px; width: min(46%, 260px);
+  background: #fff; color: #1b1b1b; box-shadow: 0 8px 24px rgba(0,0,0,.35); /* taste-skill-ignore: window inside the data-ui desktop */
+  transition: opacity .3s, transform .3s var(--ease);
+}
+.desk-win[hidden] { display: block; opacity: 0; transform: translateY(8px); pointer-events: none; }
+.desk-win header { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; font-size: 12px; background: #f3f3f3; }
+.desk-win ul { list-style: none; margin: 0; padding: 8px; min-height: 64px; font-size: 12px; display: grid; gap: 4px; align-content: start; }
+.desk-cover { position: absolute; inset: 0; background: #0b4f9c; display: grid; place-items: center; font-size: 15px; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.desk-cover.on { opacity: 1; }
+
+/* ---------- steps: accordion of tinted panels ---------- */
+.steps { margin-top: var(--gap-section); }
+.steps-head { display: grid; grid-template-columns: 5fr 1fr 6fr; gap: 0 32px; align-items: end; }
+.steps-head h2 { font-size: var(--step-head); grid-column: 1; }
+.steps-head p { grid-column: 3; max-width: 46ch; }
+.acc { margin-top: 64px; display: flex; height: 540px; }
+.panel {
+  flex: 1 1 0; min-width: 0; position: relative; overflow: hidden; cursor: pointer;
+  transition: flex-grow .45s var(--ease);
+}
+.panel[aria-expanded="true"] { flex-grow: 7; cursor: default; }
+.panel:nth-child(1) { background: #4a1306; color: var(--ink); }
+.panel:nth-child(2) { background: #7a200b; color: var(--ink); }
+.panel:nth-child(3) { background: #a82b0f; color: var(--ink); }
+.panel:nth-child(4) { background: #ff4a1f; color: var(--accent-ink); }
+.panel:nth-child(5) { background: #ff8463; color: var(--accent-ink); }
+.panel:nth-child(6) { background: #ffbfad; color: var(--accent-ink); }
+.panel:not([aria-expanded="true"]):hover { filter: brightness(1.12); }
+.panel .name { position: absolute; left: 22px; bottom: 22px; transform-origin: left bottom; transform: rotate(-90deg) translateY(100%); white-space: nowrap; font-weight: 600; font-size: 1.25rem; letter-spacing: -0.02em; transition: opacity .3s; }
+.panel[aria-expanded="true"] .name { opacity: 0; }
+.panel .open { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; padding: 36px; opacity: 0; pointer-events: none; transition: opacity .35s .1s; min-width: 680px; }
+.panel .open { visibility: hidden; }
+.panel[aria-expanded="true"] .open { opacity: 1; pointer-events: auto; visibility: visible; }
+.open h3 { font-size: var(--step-sub); }
+.open .txt { display: flex; flex-direction: column; justify-content: space-between; }
+.open .txt p { max-width: 36ch; }
+.open figure { margin: 0; overflow: hidden; }
+.open figure img { width: 100%; height: 100%; object-fit: cover; }
+.term { background: #111214; color: #e8e8e8; padding: 22px 20px; height: 100%; display: flex; flex-direction: column; gap: 14px; }
+.term pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 400 14px/1.6 var(--mono); }
+.term .pr { color: #8ae234; } .term .cm { color: #9aa0a6; }
+
+/* ---------- variants ---------- */
+.variants { margin-top: var(--gap-section); background: var(--field); color: var(--field-ink); padding: clamp(88px, 10vw, 140px) var(--m); }
+.variants-head { display: grid; grid-template-columns: 5fr 1fr 6fr; gap: 0 32px; align-items: end; }
+.variants-head h2 { font-size: var(--step-head); }
+.variants-head p { grid-column: 3; max-width: 46ch; }
+.cat { margin-top: 96px; }
+.cat-top { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; margin-bottom: 40px; }
+.cat-top h3 { font-size: var(--step-sub); display: flex; align-items: center; gap: 16px; }
+.cat-top h3 .sq { width: .42em; height: .42em; }
+.cat-top span { font-size: var(--step-small); }
+.cat dl { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 28px 64px; }
+.cat dl div { display: grid; grid-template-columns: 14px 1fr; gap: 0 18px; align-items: start; }
+.cat .mark { grid-row: span 2; width: 14px; height: 14px; margin-top: 6px; background: var(--accent); }
+.cat dt { font-weight: 600; }
+.cat dd { margin: 0; color: #45474c; max-width: 40ch; }
+
+/* ---------- faq ---------- */
+.faq { margin-top: var(--gap-section); display: grid; grid-template-columns: 4fr 8fr; gap: 32px; align-items: start; }
+.faq h2 { font-size: var(--step-head); position: sticky; top: 96px; max-width: 8ch; }
+.tiles { display: grid; gap: 8px; }
+.tiles details { background: var(--surface); transition: background-color .3s var(--ease), color .3s; }
+.tiles summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 72px; padding: 18px 24px; font-size: 1.25rem; font-weight: 500; transition: background-color .2s; }
+.tiles summary::-webkit-details-marker { display: none; }
+.tiles summary:hover { background: var(--surface-2); }
+.plus { position: relative; width: 16px; height: 16px; flex: none; }
+.plus::before, .plus::after { content: ""; position: absolute; left: 0; top: 6.5px; width: 16px; height: 3px; background: currentColor; transition: transform .3s var(--ease); }
+.plus::after { transform: rotate(90deg); }
+.tiles details[open] { background: var(--accent); color: var(--accent-ink); }
+.tiles details[open] summary:hover { background: transparent; }
+.tiles details[open] .plus::after { transform: rotate(0deg); }
+.tiles .ans { padding: 0 24px 26px; max-width: 60ch; }
+.tiles code { font: 500 .92em var(--mono); }
+
+/* ---------- cta ---------- */
+.cta { margin-top: var(--gap-section); display: grid; grid-template-columns: 2fr 8fr 2fr; gap: 12px; height: 380px; margin-inline: -40px; }
+.cta .side { background: var(--surface-2); overflow: hidden; }
+.cta .side img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); }
+.cta .main { background: var(--accent); color: var(--accent-ink); padding: 44px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 18px; }
+.cta h2 { font-size: var(--step-head); max-width: 16ch; }
+.cta p { max-width: 50ch; }
+.cta .btn { background: var(--accent-ink); color: var(--ink); }
+.cta .btn .grid9 { color: var(--accent); }
+.cta .btn:hover { background: #000; }
+
+/* ---------- footer ---------- */
+footer { margin-top: 88px; padding: 0 var(--m) 32px; }
+.mark-big { display: flex; align-items: flex-end; gap: 4px; height: 34svh; min-height: 220px; }
+.mark-big span {
+  flex: 1; display: grid; place-items: center;
+  font-weight: 600; font-size: clamp(3rem, 1rem + 9vw, 10rem); letter-spacing: -0.05em; line-height: 1;
+  color: var(--bg);
+}
+.mark-big span:nth-child(1) { height: 100%; background: var(--accent); }
+.mark-big span:nth-child(2) { height: 72%; background: var(--field); }
+.mark-big span:nth-child(3) { height: 88%; background: var(--surface-2); color: var(--ink); }
+.mark-big span:nth-child(4) { height: 64%; background: var(--field); }
+.mark-big span:nth-child(5) { height: 94%; background: var(--accent); }
+.foot { margin-top: 56px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 32px; }
+.foot .col { grid-column: span 3; }
+.foot h2 { font-size: var(--step-body); font-weight: 600; letter-spacing: 0; margin-bottom: 14px; }
+.foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: var(--step-small); }
+.foot ul a { text-decoration: none; color: var(--muted); transition: color .2s; }
+.foot ul a:hover { color: var(--ink); }
+.foot .msg { grid-column: 7 / 13; font-size: var(--step-small); color: var(--muted); }
+.foot .msg p + p { margin-top: 12px; }
+.foot .msg a { color: var(--ink); }
+.last { margin-top: 48px; display: flex; justify-content: space-between; align-items: center; gap: 20px; font-size: var(--step-small); color: var(--muted); }
+.last .btn { min-height: 44px; font-size: var(--step-small); }
+
+/* ---------- entrances ---------- */
+.js .rise { opacity: 0; transform: translateY(24px); transition: opacity .7s var(--ease), transform .7s var(--ease); transition-delay: calc(var(--i, 0) * 80ms); }
+.js .rise.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; }
+  .js .rise { opacity: 1; transform: none; }
+}
+
+/* ---------- tablet ---------- */
+@media (max-width: 1024px) {
+  .nav ul { display: none; }
+  .nav .btn { margin-left: auto; }
+  .hero { grid-template-columns: 1fr; padding-right: var(--m); min-height: 0; }
+  .hero-text { padding-bottom: 0; }
+  .stage { min-height: 0; aspect-ratio: 4 / 3; margin-right: calc(var(--m) * -1); }
+  .stage .shot { width: 92%; margin-left: -4%; }
+  .showcase { grid-template-columns: 1fr; }
+  .switches-head, .steps-head, .variants-head, .install-head { grid-template-columns: 1fr; gap: 20px; }
+  .steps-head p, .variants-head p, .install-head p { grid-column: 1; }
+  .ways { grid-template-columns: minmax(0, 1fr); }
+  .live { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .live-intro { display: contents; }
+  .live h2 { order: 1; } .live-intro > p { order: 2; }
+  .live .desk-stage { order: 3; margin-top: 32px; }
+  .actions { order: 4; } .status { order: 5; }
+  .acc { flex-direction: column; height: auto; }
+  .panel { flex: none; }
+  .panel .name { position: static; transform: none; display: block; padding: 20px; font-size: 1.125rem; }
+  .panel[aria-expanded="true"] .name { display: none; }
+  .panel .open { position: static; display: none; min-width: 0; grid-template-columns: 1fr; padding: 24px 20px; }
+  .panel[aria-expanded="true"] .open { display: grid; }
+  .open figure { aspect-ratio: 4 / 3; }
+  .faq { grid-template-columns: 1fr; }
+  .faq h2 { position: static; max-width: none; }
+  .cta { grid-template-columns: 1fr 1fr; height: auto; margin-inline: 0; padding-inline: var(--m); }
+  .cta .main { grid-column: 1 / -1; grid-row: 1; padding: 36px 28px; }
+  .cta .side { height: 140px; }
+  .foot .col { grid-column: span 6; }
+  .foot .msg { grid-column: 1 / -1; }
+}
+
+/* ---------- phone ---------- */
+@media (max-width: 640px) {
+  .nav .btn .t { display: none; }
+  .hero h1 { font-size: 9.6vw; }
+  .squares { grid-template-columns: repeat(9, 1fr); }
+  .squares i:nth-child(n+10) { display: none; }
+  .band { grid-template-columns: 1fr auto; min-height: 132px; gap: 16px; }
+  .band .say { grid-column: 1; }
+  .band .say b { font-size: 1.5rem; }
+  .toggle { grid-column: 2; font-size: 1.5rem; }
+  .cmd { grid-template-columns: 1fr; padding: 20px; }
+  .cmd code { font-size: .875rem; }
+  .code { grid-template-columns: minmax(0, 1fr); }
+  .code code { font-size: .8125rem; }
+  .cat dl { grid-template-columns: 1fr; }
+  .cat-top { flex-direction: column; gap: 6px; }
+  .tiles summary { font-size: 1.125rem; min-height: 64px; padding: 16px 20px; }
+  .tiles .ans { padding: 0 20px 22px; }
+  .desk { aspect-ratio: 4 / 3; font-size: 11px; }
+  .desk-icons { top: 6px; left: 4px; bottom: 40px; gap: 2px; }
+  .di { width: 66px; gap: 2px; padding: 2px; }
+  .ico { width: 26px; height: 26px; font-size: 12px; }
+  .desk-win { width: 56%; right: 8px; top: 8px; }
+  .desk-stage { padding: 14px; }
+  .mark-big { height: 22svh; min-height: 140px; }
+  .foot .col { grid-column: 1 / -1; }
+  .last { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body id="top">
+
+<header>
+  <nav class="nav" aria-label="Principal">
+    <a class="brand" href="#top"><span class="grid9" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>linux</a>
+    <ul>
+      <li><a href="#cum-arata">Cum arată</a></li>
+      <li><a href="#instalare">Instalare</a></li>
+      <li><a href="#setari">Setări</a></li>
+      <li><a href="#incearca">Resetarea</a></li>
+      <li><a href="#pasi">Pași</a></li>
+      <li><a href="#variante">Variante</a></li>
+      <li><a href="#intrebari">Întrebări</a></li>
+    </ul>
+    <a class="btn" href="https://github.com/nazdravan/linux"><span class="t">Codul pe&nbsp;</span>GitHub</a>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-text">
+      <h1 class="rise">Linux pentru sala de informatică</h1>
+      <p class="lede rise" style="--i:1">Scripturi gratuite care fac din calculatoarele vechi ale școlii calculatoare care arată ca Windows 10, cu LibreOffice și un cont de elev care se curăță singur după fiecare oră.</p>
+      <ul class="facts rise" style="--i:2">
+        <li><span class="sq"></span>2 GB RAM</li>
+        <li><span class="sq"></span>HDD</li>
+        <li><span class="sq"></span>64 de biți</li>
+        <li><span class="sq"></span>în română</li>
+      </ul>
+      <div class="hero-actions rise" style="--i:3">
+        <a class="btn" href="https://github.com/nazdravan/linux/archive/refs/heads/main.zip"><span class="grid9" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>Descarcă scripturile</a>
+        <a class="link" href="#instalare">Sau dintr-o comandă</a>
+      </div>
+    </div>
+    <figure class="stage">
+      <div class="shot"><img src="img/desktop-q4os.jpg" width="1366" height="768" alt="Desktopul elevului după script: fundal albastru, iconițe în stânga, bară închisă jos cu buton Start, programe fixate și ceas"></div>
+      <span class="corner grid9" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    </figure>
+  </div>
+  <div class="squares" aria-hidden="true" id="squares"></div>
+</header>
+
+<main>
+
+<section class="showcase wrap" id="cum-arata" aria-labelledby="h-arata">
+  <div>
+    <h2 class="showcase-title rise" id="h-arata">Elevii îl recunosc din prima</h2>
+    <ul class="picks rise" style="--i:1" role="tablist" aria-label="Capturi de ecran">
+      <li><button role="tab" aria-selected="true"><span class="sq"></span>Desktopul</button></li>
+      <li><button role="tab" aria-selected="false"><span class="sq"></span>Word</button></li>
+      <li><button role="tab" aria-selected="false"><span class="sq"></span>Paint</button></li>
+      <li><button role="tab" aria-selected="false"><span class="sq"></span>Salvarea</button></li>
+    </ul>
+    <p class="fact rise" style="--i:2" id="fact" aria-live="polite">Bara jos, butonul Start în stânga, ceasul cu data în dreapta. Pe Desktop: Acest PC, Coș de gunoi, Lucrări și programele.</p>
+  </div>
+  <div class="view rise" style="--i:1" id="view" data-c="0">
+    <p class="cap" id="view-cap">Q4OS, după rularea scriptului</p>
+    <figure>
+      <img class="on" src="img/desktop-q4os.jpg" width="1366" height="768" alt="Desktopul elevului pe Q4OS">
+      <img src="img/writer-q4os.jpg" width="1366" height="768" alt="LibreOffice Writer cu file: Fișier, Home, Inserare, Aspect" loading="lazy">
+      <img src="img/paint-q4os.jpg" width="1366" height="768" alt="KolourPaint cu meniurile în română" loading="lazy">
+      <img src="img/salvare-docx-antix.jpg" width="1366" height="768" alt="Fereastra Salvează cu Word 2007 (.docx) ales implicit" loading="lazy">
+    </figure>
+    <span class="grid9" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+  </div>
+</section>
+
+<section class="install wrap" id="instalare" aria-labelledby="h-inst">
+  <div class="install-head">
+    <h2 id="h-inst" class="rise">Instalare dintr-o comandă</h2>
+    <p class="rise" style="--i:1">Deschide Terminalul în contul profesorului și lipește comanda. Scriptul recunoaște singur sistemul (Mint, Q4OS sau antiX) și îl configurează.</p>
+  </div>
+  <div class="ways">
+    <div class="way in-1 rise">
+      <h3><span class="grid9" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>Instalare</h3>
+      <div class="code" data-ui><pre><code><span class="p">$</span> sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/instalare.sh)"</code></pre><button class="btn light" type="button" data-copy>Copiază</button></div>
+      <details class="alt"><summary>Nu ai curl? Cu wget</summary><div class="code" data-ui><pre><code><span class="p">$</span> sudo bash -c "$(wget -qO- https://raw.githubusercontent.com/nazdravan/linux/main/instalare.sh)"</code></pre><button class="btn light" type="button" data-copy>Copiază</button></div></details>
+      <ul>
+        <li><span class="sq"></span>durează 10–30 de minute, cu internet</li>
+        <li><span class="sq"></span>la final: <b>sudo reboot</b></li>
+        <li><span class="sq"></span>setările se aleg mai jos, în <a class="link" href="#setari" style="text-decoration-color:currentColor">Setări</a></li>
+      </ul>
+    </div>
+    <div class="way in-2 rise" style="--i:1">
+      <h3>Dezinstalare</h3>
+      <p>Șterge contul elev, resetarea, intrarea automată și tema. Programele, limba și dosarul cu lucrări rămân. Întreabă înainte să schimbe ceva.</p>
+      <div class="code" data-ui><pre><code><span class="p">$</span> sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/dezinstalare.sh)"</code></pre><button class="btn light" type="button" data-copy>Copiază</button></div>
+      <p class="alt">Păstrezi contul elev cu <b>PASTREAZA_ELEV=1</b>, ștergi și lucrările cu <b>STERGE_LUCRARI=1</b>, puse după sudo.</p>
+    </div>
+  </div>
+</section>
+
+<section class="switches" id="setari" aria-labelledby="h-setari">
+  <div class="switches-head">
+    <h2 id="h-setari" class="rise">Tu alegi ce face scriptul</h2>
+    <p class="rise" style="--i:1">Fiecare rând e o setare reală a scriptului. Apasă pe rânduri, iar dedesubt apare comanda de instalare cu setările tale.</p>
+  </div>
+  <div id="bands">
+    <div class="band c1" role="switch" tabindex="0" aria-checked="true" data-var="AUTOLOGIN" data-on="1" data-off="0" data-def="1">
+      <div class="say"><b>Calculatorul intră singur în contul elev</b><span class="then"><span><span>La pornire nu se cere parola. Profesorul intră din ecranul de logare, după ieșirea elevului.</span></span></span></div>
+      <span class="toggle" data-ui aria-hidden="true"></span>
+    </div>
+    <div class="band c2" role="switch" tabindex="0" aria-checked="true" data-var="TEMA_WIN10" data-on="1" data-off="0" data-def="1">
+      <div class="say"><b>Tema și iconițele Windows 10</b><span class="then"><span><span>Descarcă tema B00merang Windows 10. Fără ea rămâne tema distribuției.</span></span></span></div>
+      <span class="toggle" data-ui aria-hidden="true"></span>
+    </div>
+    <div class="band c3" role="switch" tabindex="0" aria-checked="true" data-var="LUCRARI_DIR" data-on="/srv/lucrari" data-off='""' data-def="/srv/lucrari">
+      <div class="say"><b>Un dosar care nu se șterge</b><span class="then"><span><span>„Lucrări (nu se șterg)” pe Desktop, în /srv/lucrari. Tot restul contului se resetează.</span></span></span></div>
+      <span class="toggle" data-ui aria-hidden="true"></span>
+    </div>
+    <div class="band c1" role="switch" tabindex="0" aria-checked="false" data-var="TASTATURI" data-on="us,ro,ru" data-off="us,ro" data-def="us,ro" data-var2="VARIANTE" data-on2=",std," data-off2=",std">
+      <div class="say"><b>Și tastatura rusă, lângă US și Română</b><span class="then"><span><span>Trei aranjamente, comutate cu Alt+Shift. Implicit sunt doar US și Română standard.</span></span></span></div>
+      <span class="toggle" data-ui aria-hidden="true"></span>
+    </div>
+    <div class="band c2" role="switch" tabindex="0" aria-checked="true" data-var="ACTUALIZARE" data-on="1" data-off="0" data-def="1">
+      <div class="say"><b>Instalează și actualizările sistemului</b><span class="then"><span><span>Durează mai mult pe HDD, dar calculatorul pleacă la treabă la zi.</span></span></span></div>
+      <span class="toggle" data-ui aria-hidden="true"></span>
+    </div>
+  </div>
+  <div class="cmd">
+    <p>Comanda,<br>în Terminal:</p>
+    <pre><code id="cmd">sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/instalare.sh)"</code></pre>
+    <button class="btn light copy" type="button" id="copy">Copiază</button>
+  </div>
+</section>
+
+<section class="live wrap" id="incearca" aria-labelledby="h-live">
+  <div class="live-intro">
+    <h2 id="h-live" class="rise">Fiecare oră începe curat</h2>
+    <p class="rise" style="--i:1">Toți elevii intră în același cont, „elev”. Ce schimbă ei se șterge la ieșirea din sesiune și la repornire. Rămâne doar ce salvează în dosarul <b>Lucrări (nu se șterg)</b>.</p>
+    <p class="rise" style="--i:2">Încearcă: fă dezordine pe desktop, apoi ieși din sesiune.</p>
+    <div class="actions" id="actions" hidden>
+      <button type="button" data-act="fundal"><span class="sq"></span>Schimbă fundalul în roz</button>
+      <button type="button" data-act="firefox"><span class="sq"></span>Șterge Internetul de pe Desktop</button>
+      <button type="button" data-act="desktop"><span class="sq"></span>Salvează „joc_de_rupt.docx” pe Desktop</button>
+      <button type="button" data-act="lucrari"><span class="sq"></span>Salvează „proiect_clasa7.pptx” în Lucrări</button>
+      <button type="button" class="btn" data-act="iesire">Ieșire din sesiune</button>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </div>
+  <div class="desk-stage rise" style="--i:1">
+    <div class="desk" id="desk" data-ui role="img" aria-label="Desktopul contului elev, desenat">
+      <div class="desk-icons" id="icons">
+        <div class="di" data-k="pc"><span class="ico pc">PC</span>Acest PC</div>
+        <div class="di" data-k="trash"><span class="ico trash">C</span>Coș de gunoi</div>
+        <div class="di" data-k="lucrari"><span class="ico dir"></span>Lucrări (nu se șterg)</div>
+        <div class="di" data-k="firefox"><span class="ico ff">F</span>Internet</div>
+        <div class="di" data-k="w"><span class="ico w">W</span>Documente</div>
+        <div class="di" data-k="x"><span class="ico x">X</span>Tabele</div>
+        <div class="di" data-k="p"><span class="ico p">P</span>Prezentări</div>
+        <div class="di" data-k="paint"><span class="ico paint">D</span>Desen</div>
+      </div>
+      <div class="desk-win" id="win" hidden>
+        <header><span>Lucrări (nu se șterg)</span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="#1b1b1b" stroke-width="1.4"/></svg></header>
+        <ul id="win-list"><li>(gol)</li></ul>
+      </div>
+      <div class="desk-bar">
+        <span class="grid9"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="t" style="background:#f1c232"></span>
+        <span class="t" style="background:#e66000;border-radius:50%"></span>
+        <span class="t" style="background:#2b5797"></span>
+        <span class="t" style="background:#1e7145"></span>
+        <span class="t" style="background:#d24726"></span>
+        <span class="clock">08:00<br>luni</span>
+      </div>
+      <div class="desk-cover" id="cover">Se reface contul…</div>
+    </div>
+  </div>
+</section>
+
+<section class="steps wrap" id="pasi" aria-labelledby="h-pasi">
+  <div class="steps-head">
+    <h2 id="h-pasi" class="rise">De la stick la sală</h2>
+    <p class="rise" style="--i:1">Pregătești un calculator, îl verifici, apoi copiezi discul pe celelalte. Apasă pe fiecare pas.</p>
+  </div>
+  <div class="acc" id="acc">
+    <div class="panel" role="button" tabindex="0" aria-expanded="true">
+      <span class="name">Instalezi sistemul</span>
+      <div class="open">
+        <div class="txt"><h3>Instalezi sistemul</h3><p>Mint XFCE, Q4OS sau antiX, de pe stick. Contul tău de profesor, cu parolă, devine administratorul.</p></div>
+        <figure><img src="img/sala-dalby.jpg" width="1920" height="933" alt="O sală de calculatoare a unei școli, cu laptopuri pe mese" loading="lazy" style="object-position:60% center;filter:grayscale(1)"></figure>
+      </div>
+    </div>
+    <div class="panel" role="button" tabindex="0" aria-expanded="false">
+      <span class="name">Rulezi comanda</span>
+      <div class="open">
+        <div class="txt"><h3>Rulezi comanda</h3><p>Una singură, în Terminal. Recunoaște sistemul și descarcă programele și tema, deci are nevoie de internet.</p></div>
+        <figure><div class="term" data-ui><pre><code><span class="pr">profesor@pc-01:~$</span> sudo bash -c "$(curl -fsSL \
+  https://raw.githubusercontent.com/nazdravan/linux/main/instalare.sh)"</code></pre><pre><code><span class="cm">==> Sistem: Linux Mint XFCE → configurare-sala.sh
+    Descărcat. Pornesc configurarea.</span></code></pre></div></figure>
+      </div>
+    </div>
+    <div class="panel" role="button" tabindex="0" aria-expanded="false">
+      <span class="name">Aștepți o pauză mare</span>
+      <div class="open">
+        <div class="txt"><h3>Aștepți o pauză mare</h3><p>10–30 de minute, cât îi trebuie HDD-ului. Apoi repornești calculatorul.</p></div>
+        <figure><img src="img/hdd.jpg" width="1600" height="921" alt="Platanele unui hard disk deschis" loading="lazy" style="object-position:30% center"></figure>
+      </div>
+    </div>
+    <div class="panel" role="button" tabindex="0" aria-expanded="false">
+      <span class="name">Verifici ca un elev</span>
+      <div class="open">
+        <div class="txt"><h3>Verifici ca un elev</h3><p>Calculatorul intră singur în contul elev. Deschide Word, salvează, schimbă tastatura, ieși și intră din nou: schimbările au dispărut.</p></div>
+        <figure><img src="img/writer-q4os.jpg" width="1366" height="768" alt="LibreOffice Writer deschis în contul elev" loading="lazy" style="object-position:left top"></figure>
+      </div>
+    </div>
+    <div class="panel" role="button" tabindex="0" aria-expanded="false">
+      <span class="name">Potrivești contul</span>
+      <div class="open">
+        <div class="txt"><h3>Potrivești contul</h3><p>Oprești resetarea, aranjezi contul elev cum vrei, apoi îl salvezi ca nou șablon.</p></div>
+        <figure><div class="term" data-ui><pre><code><span class="pr">$</span> sudo cont-elev pauza
+<span class="cm"># aranjezi contul elev</span>
+<span class="pr">$</span> sudo cont-elev salveaza
+<span class="pr">$</span> sudo cont-elev stare</code></pre><pre><code><span class="cm"># te-ai răzgândit:</span>
+<span class="pr">$</span> sudo cont-elev anuleaza</code></pre></div></figure>
+      </div>
+    </div>
+    <div class="panel" role="button" tabindex="0" aria-expanded="false">
+      <span class="name">Copiezi pe toate</span>
+      <div class="open">
+        <div class="txt"><h3>Copiezi pe toate</h3><p>Clonezilla copiază discul pe celelalte calculatoare. Fiecare primește apoi un nume propriu.</p></div>
+        <figure><div class="term" data-ui><pre><code><span class="cm"># înainte de clonare:</span>
+<span class="pr">$</span> sudo truncate -s 0 /etc/machine-id
+<span class="pr">$</span> sudo apt clean</code></pre><pre><code><span class="cm"># după, pe fiecare:</span>
+<span class="pr">$</span> sudo hostnamectl set-hostname pc-07</code></pre></div></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="variants" id="variante" aria-labelledby="h-var">
+  <div class="variants-head">
+    <h2 id="h-var" class="rise">Trei variante</h2>
+    <p class="rise" style="--i:1">Contul elevului, dosarul Lucrări, formatele Office, româna și Alt+Shift sunt la fel în toate. Diferă cât de ușor e sistemul și cât de aproape arată de Windows.</p>
+  </div>
+
+  <div class="cat rise">
+    <div class="cat-top"><h3><span class="sq"></span>Linux Mint XFCE</h3><span>configurare-sala.sh · Mint 22 sau 23</span></div>
+    <dl>
+      <div><span class="mark"></span><dt>Când</dt><dd>Implicit. Cel mai ușor de întreținut, cu cea mai mare comunitate.</dd></div>
+      <div><span class="mark"></span><dt>Arată</dt><dd>Cel mai aproape de Windows 10: temă și iconițe Windows 10, Whisker Menu.</dd></div>
+      <div><span class="mark"></span><dt>Paint</dt><dd>KolourPaint.</dd></div>
+      <div><span class="mark"></span><dt>Resetarea</dt><dd>La ieșirea din LightDM și la pornire, printr-un serviciu systemd.</dd></div>
+    </dl>
+  </div>
+
+  <div class="cat rise">
+    <div class="cat-top"><h3><span class="sq"></span>Q4OS Trinity</h3><span>configurare-q4os.sh · Q4OS 6</span></div>
+    <dl>
+      <div><span class="mark"></span><dt>Când</dt><dd>Mint e prea greu pentru calculatoarele tale, iar antiX prea simplu.</dd></div>
+      <div><span class="mark"></span><dt>Arată</dt><dd>Bară închisă, ferestre albe, meniul Kickoff cu căutare sus.</dd></div>
+      <div><span class="mark"></span><dt>Paint</dt><dd>KolourPaint, în română.</dd></div>
+      <div><span class="mark"></span><dt>Resetarea</dt><dd>Prin ecranul de logare TDM, la intrare și la ieșire, plus la pornire.</dd></div>
+    </dl>
+  </div>
+
+  <div class="cat rise">
+    <div class="cat-top"><h3><span class="sq"></span>antiX 26</h3><span>configurare-antix.sh · antiX 26 full</span></div>
+    <dl>
+      <div><span class="mark"></span><dt>Când</dt><dd>Pentru calculatoarele cele mai slabe: consumă cel mai puțin.</dd></div>
+      <div><span class="mark"></span><dt>Arată</dt><dd>IceWM cu tema Windows 10 proprie, meniu simplu: Documente, Tabele, Internet.</dd></div>
+      <div><span class="mark"></span><dt>Paint</dt><dd>Drawing (KolourPaint nu se poate instala pe antiX).</dd></div>
+      <div><span class="mark"></span><dt>Resetarea</dt><dd>Prin ecranul de logare slimski. Merge fără systemd, cu orice init.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="faq wrap" id="intrebari" aria-labelledby="h-faq">
+  <h2 id="h-faq" class="rise">Întrebări de la colegi</h2>
+  <div class="tiles rise" style="--i:1">
+    <details name="faq" open><summary>Trebuie să știu Linux?<span class="plus"></span></summary><p class="ans">Nu mult. Instalezi sistemul de pe stick, ca pe Windows, și scrii o singură comandă în Terminal. Restul face scriptul.</p></details>
+    <details name="faq"><summary>Ce se întâmplă cu lucrările elevilor?<span class="plus"></span></summary><p class="ans">Tot ce salvează în dosarul „Lucrări (nu se șterg)” rămâne. Dosarul e în <code>/srv/lucrari</code>, în afara contului elev, și se poate copia pe stick la sfârșitul orei.</p></details>
+    <details name="faq"><summary>Cum intru eu, profesorul?<span class="plus"></span></summary><p class="ans">Ieși din sesiunea elevului și intri cu numele și parola ta în ecranul de logare. Doar contul tău are drepturi de administrator.</p></details>
+    <details name="faq"><summary>Pot schimba ce văd elevii?<span class="plus"></span></summary><p class="ans">Da: <code>sudo cont-elev pauza</code>, aranjezi contul elev, apoi <code>sudo cont-elev salveaza</code>. Șablonul vechi se întoarce cu <code>sudo cont-elev anuleaza</code>.</p></details>
+    <details name="faq"><summary>Ce distribuție aleg?<span class="plus"></span></summary><p class="ans">Mint, dacă merge bine pe calculatoarele tale. Q4OS dacă Mint e prea greu, antiX pentru cele mai slabe. Cel mai bine e să le încerci pe un calculator.</p></details>
+    <details name="faq"><summary>Merge pe 32 de biți?<span class="plus"></span></summary><p class="ans">Nu. Scripturile sunt pentru sisteme de 64 de biți, ca toate cele trei distribuții actuale.</p></details>
+    <details name="faq"><summary>Am nevoie de internet?<span class="plus"></span></summary><p class="ans">Doar când rulezi scriptul: descarcă LibreOffice în română, Firefox și tema Windows 10. După aceea calculatorul merge și fără.</p></details>
+    <details name="faq"><summary>Cum le pun pe 15 calculatoare?<span class="plus"></span></summary><p class="ans">Cu Clonezilla: faci imaginea discului de pe primul și o scrii pe celelalte. Discurile țintă trebuie să fie la fel de mari sau mai mari.</p></details>
+    <details name="faq"><summary>Ce ajută cel mai mult, în afară de script?<span class="plus"></span></summary><p class="ans">Un SSD ieftin în locul HDD-ului. După el, încă 2 GB de memorie DDR3 second-hand.</p></details>
+    <details name="faq"><summary>A fost testat?<span class="plus"></span></summary><p class="ans">Pe sistemele din imaginile oficiale Mint 22.3, antiX 26.1 și Q4OS 6.10; capturile de pe pagină sunt de acolo. Pornirea automată, zram și discul se verifică pe primul calculator real, înainte de clonare.</p></details>
+  </div>
+</section>
+
+<section class="cta" aria-labelledby="h-cta">
+  <div class="side"><img src="img/sala-dalby.jpg" width="1920" height="933" alt="" loading="lazy" style="object-position:20% center"></div>
+  <div class="main">
+    <h2 id="h-cta">Începe cu un singur calculator</h2>
+    <p>O arhivă cu cele trei scripturi și instrucțiunile în română. Le copiezi pe stick și le duci la școală.</p>
+    <a class="btn" href="https://github.com/nazdravan/linux/archive/refs/heads/main.zip"><span class="grid9" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>Descarcă arhiva .zip</a>
+  </div>
+  <div class="side"><img src="img/ram-ddr3.jpg" width="1600" height="819" alt="" loading="lazy"></div>
+</section>
+
+</main>
+
+<footer>
+  <div class="mark-big"><span>l</span><span>i</span><span>n</span><span>u</span><span>x</span></div>
+  <div class="foot">
+    <div class="col">
+      <h2>Proiectul</h2>
+      <ul>
+        <li><a href="https://github.com/nazdravan/linux">Codul pe GitHub</a></li>
+        <li><a href="https://github.com/nazdravan/linux#readme">Instrucțiunile complete</a></li>
+        <li><a href="https://github.com/nazdravan/linux/issues">Raportează o problemă</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h2>Pe pagină</h2>
+      <ul>
+        <li><a href="#cum-arata">Cum arată</a></li>
+        <li><a href="#incearca">Resetarea</a></li>
+        <li><a href="#variante">Variante</a></li>
+      </ul>
+    </div>
+    <div class="msg">
+      <p>Dacă ceva nu merge pe calculatoarele tale sau ai o idee, scrie pe GitHub. Fiecare sală are calculatoarele ei, iar raportul tău ajută și altă școală.</p>
+      <p>Fotografii: <a href="https://commons.wikimedia.org/w/index.php?curid=107167177">„3.5 inch hard disk drive, side view”</a> de Gunnar Wolf, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; <a href="https://commons.wikimedia.org/w/index.php?curid=39280158">„2015 Pamięć DDR3 1GB”</a> de Jacek Halicki, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; <a href="https://commons.wikimedia.org/w/index.php?curid=138300182">„Dalby State School, Computer lab, 2023”</a>, autor neidentificat, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; prin Wikimedia Commons. Capturile de ecran sunt ale proiectului. Tema Windows 10: B00merang Project, GPL-3.0.</p>
+    </div>
+  </div>
+  <div class="last">
+    <span>© 2026 nazdravan · Linux pentru sala de informatică</span>
+    <a class="btn" href="#top">Sus</a>
+  </div>
+</footer>
+
+<script>
+document.documentElement.classList.add('js');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* entrances */
+(() => {
+  const els = document.querySelectorAll('.rise');
+  if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in')); return; }
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), { rootMargin: '0px 0px -4% 0px' });
+  els.forEach(e => io.observe(e));
+  addEventListener('scroll', () => { if (innerHeight + scrollY >= document.body.scrollHeight - 4) els.forEach(e => e.classList.add('in')); }, { passive: true });
+})();
+
+/* the band of squares fills as the page is read */
+(() => {
+  const box = document.getElementById('squares');
+  for (let i = 0; i < 18; i++) box.appendChild(document.createElement('i'));
+  const sq = [...box.children];
+  const upd = () => {
+    const p = Math.min(1, scrollY / Math.max(1, document.body.scrollHeight - innerHeight));
+    const n = Math.max(1, Math.round(p * sq.length));
+    sq.forEach((s, i) => s.classList.toggle('on', i < n));
+  };
+  addEventListener('scroll', upd, { passive: true }); upd();
+})();
+
+/* hero screenshot drifts with scroll */
+(() => {
+  if (reduce) return;
+  const s = document.querySelector('.stage .shot');
+  addEventListener('scroll', () => { if (scrollY < innerHeight * 1.2) s.style.setProperty('--py', (scrollY * -0.08) + 'px'); }, { passive: true });
+})();
+
+/* showcase: slow crossfade, or pick */
+(() => {
+  const facts = [
+    'Bara jos, butonul Start în stânga, ceasul cu data în dreapta. Pe Desktop: Acest PC, Coș de gunoi, Lucrări și programele.',
+    'Writer cu file sus, ca panglica din Office. Fără fereastra de bun-venit la fiecare oră.',
+    'KolourPaint, cu meniurile în română. Pe antiX: Drawing.',
+    'Salvarea propune .docx din prima. La fel .xlsx în Calc și .pptx în Impress.'
+  ];
+  const caps = ['Q4OS, după rularea scriptului', 'Q4OS, LibreOffice Writer', 'Q4OS, KolourPaint', 'antiX, fereastra Salvează'];
+  const tabs = [...document.querySelectorAll('.picks [role=tab]')];
+  const imgs = [...document.querySelectorAll('.view img')];
+  const view = document.getElementById('view'), fact = document.getElementById('fact'), cap = document.getElementById('view-cap');
+  let cur = 0, timer = null;
+  const pick = i => {
+    cur = i;
+    tabs.forEach((t, k) => t.setAttribute('aria-selected', k === i));
+    imgs.forEach((im, k) => im.classList.toggle('on', k === i));
+    view.dataset.c = String(i % 3);
+    fact.textContent = facts[i]; cap.textContent = caps[i];
+  };
+  const stop = () => { clearInterval(timer); timer = null; };
+  if (!reduce) timer = setInterval(() => { if (!document.hidden) pick((cur + 1) % imgs.length); }, 5600);
+  tabs.forEach((t, k) => {
+    t.addEventListener('click', () => { stop(); pick(k); });
+    t.addEventListener('keydown', e => {
+      const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return; e.preventDefault(); stop();
+      const n = (k + d + tabs.length) % tabs.length; tabs[n].focus(); pick(n);
+    });
+  });
+})();
+
+/* switches build the command */
+(() => {
+  const bands = [...document.querySelectorAll('.band')];
+  const out = document.getElementById('cmd');
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const build = () => {
+    const parts = [];
+    bands.forEach(b => {
+      const on = b.getAttribute('aria-checked') === 'true';
+      const val = on ? b.dataset.on : b.dataset.off;
+      if (val !== b.dataset.def) {
+        parts.push(`<span class="v">${b.dataset.var}=${esc(val)}</span>`);
+        if (b.dataset.var2) parts.push(`<span class="v">${b.dataset.var2}=${esc(on ? b.dataset.on2 : b.dataset.off2)}</span>`);
+      }
+    });
+    out.innerHTML = 'sudo ' + (parts.length ? parts.join(' ') + ' ' : '') + 'bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/instalare.sh)"';
+  };
+  const flip = b => { b.setAttribute('aria-checked', b.getAttribute('aria-checked') !== 'true'); build(); };
+  bands.forEach(b => {
+    b.addEventListener('click', () => flip(b));
+    b.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(b); } });
+  });
+  build();
+  const copy = document.getElementById('copy');
+  copy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(out.textContent); copy.textContent = 'Copiat'; }
+    catch { copy.textContent = 'Selectează textul'; }
+    setTimeout(() => copy.textContent = 'Copiază', 1800);
+  });
+})();
+
+/* copy buttons in the install section */
+document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+  const t = b.parentElement.querySelector('code').textContent.replace(/^\$\s*/, '');
+  try { await navigator.clipboard.writeText(t); b.textContent = 'Copiat'; } catch { b.textContent = 'Selectează textul'; }
+  setTimeout(() => b.textContent = 'Copiază', 1800);
+}));
+
+/* the reset */
+(() => {
+  const acts = document.getElementById('actions');
+  acts.hidden = false;
+  const desk = document.getElementById('desk'), icons = document.getElementById('icons');
+  const win = document.getElementById('win'), list = document.getElementById('win-list');
+  const status = document.getElementById('status'), cover = document.getElementById('cover');
+  let changes = 0; const saved = [];
+  const mark = b => { b.disabled = true; b.classList.add('done'); };
+  const say = t => status.textContent = t;
+  acts.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b || b.disabled) return;
+    const a = b.dataset.act;
+    if (a === 'fundal') { desk.classList.add('pink'); changes++; mark(b); say('Fundalul e acum roz.'); }
+    if (a === 'firefox') { icons.querySelector('[data-k=firefox]').classList.add('gone'); changes++; mark(b); say('Internetul a dispărut de pe Desktop.'); }
+    if (a === 'desktop') {
+      const d = document.createElement('div'); d.className = 'di new'; d.dataset.k = 'mess';
+      d.innerHTML = '<span class="ico doc">W</span>joc_de_rupt.docx'; icons.appendChild(d);
+      changes++; mark(b); say('Un fișier nou pe Desktop.');
+    }
+    if (a === 'lucrari') {
+      saved.push('proiect_clasa7.pptx'); list.innerHTML = '<li>proiect_clasa7.pptx</li>';
+      win.hidden = false; mark(b); say('Proiectul e în Lucrări.');
+    }
+    if (a === 'iesire') {
+      cover.classList.add('on');
+      acts.querySelectorAll('button').forEach(x => x.disabled = true);
+      setTimeout(() => {
+        desk.classList.remove('pink');
+        icons.querySelectorAll('[data-k=mess]').forEach(x => x.remove());
+        icons.querySelector('[data-k=firefox]').classList.remove('gone');
+        win.hidden = !saved.length;
+        cover.classList.remove('on');
+        acts.querySelectorAll('button').forEach(x => { x.disabled = false; x.classList.remove('done'); });
+        const n = changes === 1 ? 'o schimbare ștearsă' : changes + ' schimbări șterse';
+        say(changes || saved.length
+          ? `Contul e ca nou: ${n}.` + (saved.length ? ' În Lucrări a rămas proiect_clasa7.pptx.' : '')
+          : 'Nimic de șters: contul era deja curat.');
+        changes = 0;
+      }, 900);
+    }
+  });
+})();
+
+/* steps accordion */
+(() => {
+  const ps = [...document.querySelectorAll('.panel')];
+  const open = p => ps.forEach(x => x.setAttribute('aria-expanded', x === p));
+  ps.forEach(p => {
+    p.addEventListener('click', () => open(p));
+    p.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); open(p); } });
+  });
+})();
+</script>
+</body>
+</html>
