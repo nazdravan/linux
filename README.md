@@ -28,6 +28,29 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | **Contul „elev"** | fără drepturi de administrator, fără blocare de ecran, fără ferestre de bun-venit și actualizări; intră automat la pornire |
 | **Resetare** | tot ce schimbă elevii se șterge la ieșirea din sesiune și la repornire. Excepție: dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) |
 
+## Instalare dintr-o comandă
+
+Pe un calculator cu Linux Mint XFCE, Q4OS sau antiX deja instalat, deschide Terminalul
+în contul profesorului și scrie:
+
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/instalare.sh)"
+```
+
+`instalare.sh` recunoaște sistemul și rulează scriptul potrivit. Fără `curl`:
+`sudo bash -c "$(wget -qO- https://raw.githubusercontent.com/nazdravan/linux/main/instalare.sh)"`.
+Setările (vezi tabelul de mai jos) se pun după `sudo`, de exemplu
+`sudo AUTOLOGIN=0 bash -c "$(curl -fsSL …/instalare.sh)"`.
+
+Dezinstalare (întreabă înainte; programele, limba și dosarul cu lucrări rămân):
+
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/dezinstalare.sh)"
+```
+
+Cu `PASTREAZA_ELEV=1` contul elev rămâne, cu `STERGE_LUCRARI=1` se șterge și
+`/srv/lucrari`, cu `DA=1` nu mai întreabă.
+
 ## Pași
 
 ### 1. Instalează Linux Mint XFCE

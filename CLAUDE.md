@@ -18,6 +18,13 @@ resetează. Utilizatorul (profesor de informatică) scrie în română — răsp
   legăturile implicite de pe Desktop vin din `/opt/trinity/share/apps/kdesktop/Desktop` și se ascund cu
   copii `Hidden=true` în `~/.trinity/share/apps/kdesktop/Desktop`; bara de activități citește
   `ktaskbarrc` (global) și vrea `UseCustomColors=true`. Resetarea: hook-uri în TDM `Xstartup`/`Xreset`.
+- `instalare.sh` — instalare dintr-o comandă (`sudo bash -c "$(curl -fsSL …/instalare.sh)"`): recunoaște
+  Mint/antiX/Q4OS după `/etc/linuxmint/info`, `/etc/antix-version`, `/etc/q4os_version` și rulează scriptul
+  potrivit descărcat din `raw.githubusercontent.com/nazdravan/linux/main` (`SURSA=` îl schimbă, `VARIANTA=` forțează).
+- `dezinstalare.sh` — anulează toate cele trei scripturi (șterge contul elev, restaurează `*.inainte-de-sala`,
+  scoate tema/zram/BFQ/politica Firefox); păstrează programele și `/srv/lucrari`. Când un script nou scrie
+  fișiere în sistem, adaugă-le și aici.
+- `docs/index.html` — pagina de prezentare (GitHub Pages, sursa main /docs); pozele în `docs/img/` cu `credits.json`.
 - `README.md` — instrucțiuni pentru profesor (instalare, `cont-elev`, clonare Clonezilla, antiX).
 
 Testare: nu se poate rula pe macOS. Se testează în Docker cu imaginea `linuxmintd/mint22.3-amd64`
