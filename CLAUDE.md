@@ -6,7 +6,8 @@ resetează. Utilizatorul (profesor de informatică) scrie în română — răsp
 
 - Decizii: programele de birou sunt ArtCraft (WordCraft/GridCraft/DeckCraft, `.deb` din
   `github.com/storytold/<app>/releases/latest`, verificat cu `SHA256SUMS.txt`) — **nu** LibreOffice; și PDFCraft.
-  Programare: Thonny (apt) și VS Code (`.deb` oficial; postinst-ul lui adaugă depozitul Microsoft).
+  Executanți: Cangurul, Furnica (`EXECUTANTI`, `.deb` din `github.com/nazdravan/<app>`, aceeași funcție
+  `instaleaza_din_github`). Programare: Thonny (apt) și VS Code (`.deb` oficial; postinst-ul lui adaugă depozitul Microsoft).
   Limba sistemului rămâne engleza (nu se instalează pachete de limbă română, nu se schimbă locale);
   se adaugă doar tastatura română, cu `us` implicit (`TASTATURI=us,ro`). LibreOffice se instalează
   doar de rezervă (`LIBREOFFICE=1`, fără pachete de limbă, nu pe Desktop). Resetarea refă doar

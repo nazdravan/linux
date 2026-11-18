@@ -21,7 +21,7 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | | |
 |---|---|
 | **Aspect Windows 10** | bara jos, meniu Start, ceas și dată în dreapta, „Arată desktopul" în colț, temă și iconițe Windows 10, fundal albastru, un singur spațiu de lucru |
-| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), PDFCraft (PDF), LibreOffice de rezervă, KolourPaint (în loc de Paint), Firefox; pentru programare **Thonny** (Python) și **Visual Studio Code** |
+| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), PDFCraft (PDF), LibreOffice de rezervă, KolourPaint (în loc de Paint), Firefox; pentru algoritmi și programare **Cangurul**, **Furnica**, **Thonny** (Python) și **Visual Studio Code** |
 | **Ca în Office** | WordCraft, GridCraft și DeckCraft au panglică ca Office și lucrează direct cu **.docx, .xlsx, .pptx**; se descarcă de pe GitHub (ultima versiune, verificată cu SHA256) |
 | **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată programele de birou), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
 | **Limbă și tastatură** | sistemul rămâne în limba aleasă la instalare (engleză); se adaugă tastatura Română (standard) lângă US, care rămâne implicită; comutare cu **Alt+Shift** |
@@ -87,6 +87,7 @@ sudo ELEV_PAROLA=1234 AUTOLOGIN=0 TASTATURI=us,ro,ru VARIANTE=,std, bash configu
 | `LUCRARI_DIR` | `/srv/lucrari` | dosarul care nu se șterge (`""` = fără) |
 | `TASTATURI` / `VARIANTE` | `us,ro` / `,std` | aranjamentele tastaturii (primul e implicit) |
 | `ARTCRAFT` | `wordcraft gridcraft deckcraft pdfcraft` | programele ArtCraft instalate (`""` = niciunul) |
+| `EXECUTANTI` | `cangurul furnica` | executanții [Cangurul](https://github.com/nazdravan/cangurul) și [Furnica](https://github.com/nazdravan/furnica) (`""` = niciunul) |
 | `THONNY` / `VSCODE` | `1` / `1` | Thonny și Visual Studio Code (`0` = nu se instalează) |
 | `LIBREOFFICE` | `1` | instalează și LibreOffice, de rezervă (în meniu, la toate programele) |
 | `RESETARE` | `Desktop .local/share/Trash` | ce se reface la resetare: Desktopul și Coșul de gunoi; se pot adăuga și alte dosare, de ex. `"Desktop .local/share/Trash Downloads Documents"`; `tot` = tot contul, ca la un cont nou |
@@ -141,7 +142,7 @@ Alternativ, poți instala Mint pe fiecare calculator și rula scriptul pe fiecar
   pe 2 GB.
 - **Actualizările** le face profesorul, din contul lui (Manager de actualizări), de
   exemplu o dată pe lună. Pe calculatoarele clonate, din fiecare calculator.
-- **Programele ArtCraft** nu sunt în depozitele Mint/Debian, deci *Managerul de
+- **Programele ArtCraft, Cangurul și Furnica** nu sunt în depozitele Mint/Debian, deci *Managerul de
   actualizări* nu le actualizează. Rulează din nou scriptul: descarcă doar versiunile noi.
   Programele ArtCraft desenează cu placa video (Vulkan, altfel OpenGL); pe plăci foarte vechi verifică
   întâi pe un calculator că pornesc.

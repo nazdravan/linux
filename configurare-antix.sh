@@ -28,6 +28,7 @@ COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
 ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft pdfcraft}"   # programe ArtCraft (getartcraft.com/apps)
 THONNY="${THONNY:-1}"                    # 1 = Thonny (Python pentru începători)
 VSCODE="${VSCODE:-1}"                    # 1 = Visual Studio Code
+EXECUTANTI="${EXECUTANTI:-cangurul furnica}"   # executanți pentru algoritmi (github.com/nazdravan)
 LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"              # 1 = descarcă tema GTK și iconițele Windows 10
 ACTUALIZARE="${ACTUALIZARE:-1}"            # 1 = instalează și actualizările sistemului
@@ -128,18 +129,25 @@ instaleaza_pachete() {
 }
 
 # =============================================================================
-# WordCraft, GridCraft, DeckCraft (https://getartcraft.com/apps) în loc de Word, Excel,
-# PowerPoint, plus PDFCraft pentru PDF-uri. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
-# cu SHA256SUMS.txt al versiunii și îl instalăm cu apt (care aduce și dependențele).
-instaleaza_artcraft() {
-    pas "Programe de birou ArtCraft: ${ARTCRAFT:-niciunul}"
-    [ -n "$ARTCRAFT" ] || return 0
+# Programe care nu sunt în depozitele distribuției, publicate pe GitHub ca
+# <nume>-<versiune>-linux-x86_64.deb + SHA256SUMS.txt:
+#  - ArtCraft (https://getartcraft.com/apps): WordCraft, GridCraft, DeckCraft în loc de Word,
+#    Excel, PowerPoint, plus PDFCraft pentru PDF-uri;
+#  - executanții Cangurul și Furnica (github.com/nazdravan), pentru algoritmi.
+# Luăm ultima versiune, o verificăm cu SHA256SUMS.txt și o instalăm cu apt (aduce și dependențele).
+instaleaza_din_github() {
+    local lista=() a
+    for a in $ARTCRAFT; do lista+=("storytold/$a"); done
+    for a in $EXECUTANTI; do lista+=("nazdravan/$a"); done
+    pas "Programe de pe GitHub: ${ARTCRAFT} ${EXECUTANTI}"
+    [ "${#lista[@]}" -gt 0 ] || return 0
     local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
-    local tmp app tag ver deb baza instalat debs=()
+    local tmp proiect app tag ver deb baza instalat debs=()
     tmp="$(mktemp -d)"; chmod 755 "$tmp"     # apt citește pachetele ca utilizatorul _apt
-    for app in $ARTCRAFT; do
+    for proiect in "${lista[@]}"; do
+        app="${proiect#*/}"
         # …/releases/latest trimite la …/releases/tag/vX.Y.Z (fără API GitHub, fără limită)
-        tag="$(wget -q -S --spider "https://github.com/storytold/$app/releases/latest" 2>&1 \
+        tag="$(wget -q -S --spider "https://github.com/$proiect/releases/latest" 2>&1 \
                | sed -n 's|.*[Ll]ocation: .*/releases/tag/\([^ ]*\).*|\1|p' | tail -n1 | tr -d '\r' || true)"
         if [ -z "$tag" ]; then
             avert "Nu găsesc ultima versiune $app (fără internet?)"; PASI_ESUATI+=("$app"); continue
@@ -150,7 +158,7 @@ instaleaza_artcraft() {
             ok "$app $ver este deja instalat"; continue
         fi
         deb="$app-$ver-linux-x86_64.deb"
-        baza="https://github.com/storytold/$app/releases/download/$tag"
+        baza="https://github.com/$proiect/releases/download/$tag"
         if wget -q -O "$tmp/$deb" "$baza/$deb" && wget -q -O "$tmp/SHA256SUMS-$app.txt" "$baza/SHA256SUMS.txt" \
            && (cd "$tmp" && grep "  $deb\$" "SHA256SUMS-$app.txt" | sha256sum -c --status -); then
             debs+=("$tmp/$deb")
@@ -171,7 +179,7 @@ instaleaza_artcraft() {
         if apt-get "${apt_opt[@]}" install --no-install-recommends "${debs[@]}" "${extra[@]}"; then
             ok "Instalat: $(printf '%s ' "${debs[@]##*/}")"
         else
-            avert "Nu am putut instala programele ArtCraft"; PASI_ESUATI+=("programele ArtCraft")
+            avert "Nu am putut instala programele de pe GitHub"; PASI_ESUATI+=("programele de pe GitHub")
         fi
     fi
     rm -rf "$tmp"
@@ -232,7 +240,7 @@ EOF
     cat > /etc/default/earlyoom <<'EOF'
 # Configurat de configurare-antix.sh. Închide o filă de browser când se termină
 # memoria; nu închide niciodată WordCraft, GridCraft, DeckCraft sau Drawing (lucrarea elevului).
-EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|runit|runsv|Xorg|slimski|icewm|zzzfm|wordcraft|gridcraft|deckcraft|soffice.bin|thonny|code|drawing)$'"
+EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|runit|runsv|Xorg|slimski|icewm|zzzfm|wordcraft|gridcraft|deckcraft|soffice.bin|thonny|code|cangurul|furnica|drawing)$'"
 EOF
 
     # zram + earlyoom fără să depindem de sistemul de inițializare: le pornește
@@ -541,7 +549,7 @@ PY
 iconita() {   # cale către iconița unei aplicații (pentru bara IceWM), sau numele ei
     local n="$1" tema dir ext
     for tema in "$TEMA_ICONITE" hicolor Qogir Papirus; do
-        for dir in 48x48/apps 48/apps scalable/apps; do
+        for dir in 48x48/apps 48/apps scalable/apps 256x256/apps; do
             for ext in png svg; do
                 [ -f "/usr/share/icons/$tema/$dir/$n.$ext" ] && { echo "/usr/share/icons/$tema/$dir/$n.$ext"; return; }
             done
@@ -559,11 +567,11 @@ construieste_sablon() {
     rm -rf "$S"; install -d -m 700 "$DATE_DIR"; install -d "$S"
     cp -a /etc/skel/. "$S"/
 
-    local I_WORD I_EXCEL I_PPT I_PDF I_PAINT I_THONNY I_CODE I_WEB I_FM I_TOATE
+    local I_WORD I_EXCEL I_PPT I_PDF I_PAINT I_THONNY I_CODE I_CANGUR I_FURNICA I_WEB I_FM I_TOATE
     I_WORD="$(iconita ai.storyteller.wordcraft)"; I_EXCEL="$(iconita ai.storyteller.gridcraft)"
     I_PPT="$(iconita ai.storyteller.deckcraft)"; I_PAINT="$(iconita com.github.maoschanz.drawing)"
     I_PDF="$(iconita ai.storyteller.pdfcraft)"; I_THONNY="$(iconita thonny)"
-    I_CODE="$(iconita vscode)"
+    I_CODE="$(iconita vscode)"; I_CANGUR="$(iconita cangurul)"; I_FURNICA="$(iconita furnica)"
     I_WEB="$(iconita firefox-esr)"; I_FM="$(iconita system-file-manager)"
     I_TOATE="$(iconita applications-all)"
 
@@ -603,6 +611,8 @@ prog "Tabele — GridCraft" $I_EXCEL gridcraft
 prog "Prezentări — DeckCraft" $I_PPT deckcraft
 prog "PDF — PDFCraft" $I_PDF pdfcraft
 prog "Desen — Drawing" $I_PAINT drawing
+prog "Algoritmi — Cangurul" $I_CANGUR cangurul
+prog "Algoritmi — Furnica" $I_FURNICA furnica
 prog "Python — Thonny" $I_THONNY thonny
 prog "Programare — Visual Studio Code" $I_CODE code
 prog "Internet — Firefox" $I_WEB firefox-esr
@@ -661,6 +671,8 @@ ai.storyteller.wordcraft|Documente (WordCraft)
 ai.storyteller.gridcraft|Tabele (GridCraft)
 ai.storyteller.deckcraft|Prezentări (DeckCraft)
 com.github.maoschanz.drawing|Desen
+cangurul|Cangurul
+furnica|Furnica
 org.thonny.Thonny|Python (Thonny)
 code|Visual Studio Code
 firefox-esr|Internet (Firefox)
@@ -937,7 +949,7 @@ main() {
     echo "===== configurare-antix.sh — $(date '+%Y-%m-%d %H:%M') ====="
     verificari
     instaleaza_pachete
-    instaleaza_artcraft
+    instaleaza_din_github
     instaleaza_libreoffice
     instaleaza_programare
     optimizeaza_memoria

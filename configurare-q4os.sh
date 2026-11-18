@@ -25,6 +25,7 @@ COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
 ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft pdfcraft}"   # programe ArtCraft (getartcraft.com/apps)
 THONNY="${THONNY:-1}"                    # 1 = Thonny (Python pentru începători)
 VSCODE="${VSCODE:-1}"                    # 1 = Visual Studio Code
+EXECUTANTI="${EXECUTANTI:-cangurul furnica}"   # executanți pentru algoritmi (github.com/nazdravan)
 LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"              # 1 = descarcă tema GTK și iconițele Windows 10
 ACTUALIZARE="${ACTUALIZARE:-1}"            # 1 = instalează și actualizările sistemului
@@ -130,18 +131,25 @@ instaleaza_pachete() {
 }
 
 # =============================================================================
-# WordCraft, GridCraft, DeckCraft (https://getartcraft.com/apps) în loc de Word, Excel,
-# PowerPoint, plus PDFCraft pentru PDF-uri. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
-# cu SHA256SUMS.txt al versiunii și îl instalăm cu apt (care aduce și dependențele).
-instaleaza_artcraft() {
-    pas "Programe de birou ArtCraft: ${ARTCRAFT:-niciunul}"
-    [ -n "$ARTCRAFT" ] || return 0
+# Programe care nu sunt în depozitele distribuției, publicate pe GitHub ca
+# <nume>-<versiune>-linux-x86_64.deb + SHA256SUMS.txt:
+#  - ArtCraft (https://getartcraft.com/apps): WordCraft, GridCraft, DeckCraft în loc de Word,
+#    Excel, PowerPoint, plus PDFCraft pentru PDF-uri;
+#  - executanții Cangurul și Furnica (github.com/nazdravan), pentru algoritmi.
+# Luăm ultima versiune, o verificăm cu SHA256SUMS.txt și o instalăm cu apt (aduce și dependențele).
+instaleaza_din_github() {
+    local lista=() a
+    for a in $ARTCRAFT; do lista+=("storytold/$a"); done
+    for a in $EXECUTANTI; do lista+=("nazdravan/$a"); done
+    pas "Programe de pe GitHub: ${ARTCRAFT} ${EXECUTANTI}"
+    [ "${#lista[@]}" -gt 0 ] || return 0
     local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
-    local tmp app tag ver deb baza instalat debs=()
+    local tmp proiect app tag ver deb baza instalat debs=()
     tmp="$(mktemp -d)"; chmod 755 "$tmp"     # apt citește pachetele ca utilizatorul _apt
-    for app in $ARTCRAFT; do
+    for proiect in "${lista[@]}"; do
+        app="${proiect#*/}"
         # …/releases/latest trimite la …/releases/tag/vX.Y.Z (fără API GitHub, fără limită)
-        tag="$(wget -q -S --spider "https://github.com/storytold/$app/releases/latest" 2>&1 \
+        tag="$(wget -q -S --spider "https://github.com/$proiect/releases/latest" 2>&1 \
                | sed -n 's|.*[Ll]ocation: .*/releases/tag/\([^ ]*\).*|\1|p' | tail -n1 | tr -d '\r' || true)"
         if [ -z "$tag" ]; then
             avert "Nu găsesc ultima versiune $app (fără internet?)"; PASI_ESUATI+=("$app"); continue
@@ -152,7 +160,7 @@ instaleaza_artcraft() {
             ok "$app $ver este deja instalat"; continue
         fi
         deb="$app-$ver-linux-x86_64.deb"
-        baza="https://github.com/storytold/$app/releases/download/$tag"
+        baza="https://github.com/$proiect/releases/download/$tag"
         if wget -q -O "$tmp/$deb" "$baza/$deb" && wget -q -O "$tmp/SHA256SUMS-$app.txt" "$baza/SHA256SUMS.txt" \
            && (cd "$tmp" && grep "  $deb\$" "SHA256SUMS-$app.txt" | sha256sum -c --status -); then
             debs+=("$tmp/$deb")
@@ -173,7 +181,7 @@ instaleaza_artcraft() {
         if apt-get "${apt_opt[@]}" install --no-install-recommends "${debs[@]}" "${extra[@]}"; then
             ok "Instalat: $(printf '%s ' "${debs[@]##*/}")"
         else
-            avert "Nu am putut instala programele ArtCraft"; PASI_ESUATI+=("programele ArtCraft")
+            avert "Nu am putut instala programele de pe GitHub"; PASI_ESUATI+=("programele de pe GitHub")
         fi
     fi
     rm -rf "$tmp"
@@ -242,7 +250,7 @@ EOF
     cat > /etc/default/earlyoom <<'EOF'
 # Configurat de configurare-q4os.sh. Închide o filă de browser când se termină
 # memoria; nu închide niciodată WordCraft, GridCraft, DeckCraft sau KolourPaint (lucrarea elevului).
-EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|tdm|twin|kicker|kdesktop|tdeinit|wordcraft|gridcraft|deckcraft|soffice.bin|thonny|code|kolourpaint)$'"
+EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|tdm|twin|kicker|kdesktop|tdeinit|wordcraft|gridcraft|deckcraft|soffice.bin|thonny|code|cangurul|furnica|kolourpaint)$'"
 EOF
     if are_systemd; then
         optional "earlyoom pornit" systemctl enable --now earlyoom.service
@@ -500,7 +508,7 @@ Applets2=KMenuButton_1,ServiceButton_1,ServiceButton_2,ServiceButton_3,ServiceBu
 [menus]
 MenuEntryFormat=NameOnly
 FirstRun=true
-Favorites=ai.storyteller.wordcraft.desktop,ai.storyteller.gridcraft.desktop,ai.storyteller.deckcraft.desktop,tde-kolourpaint.desktop,org.thonny.Thonny.desktop,code.desktop,firefox-esr.desktop,tde-Home.desktop
+Favorites=ai.storyteller.wordcraft.desktop,ai.storyteller.gridcraft.desktop,ai.storyteller.deckcraft.desktop,tde-kolourpaint.desktop,cangurul.desktop,furnica.desktop,org.thonny.Thonny.desktop,code.desktop,firefox-esr.desktop,tde-Home.desktop
 
 [KMenu]
 CustomIcon=$RESURSE/start.png
@@ -732,6 +740,7 @@ LISTA
     local app f
     for app in /usr/share/applications/ai.storyteller.wordcraft.desktop /usr/share/applications/ai.storyteller.gridcraft.desktop \
                /usr/share/applications/ai.storyteller.deckcraft.desktop /opt/trinity/share/applications/tde/kolourpaint.desktop \
+               /usr/share/applications/cangurul.desktop /usr/share/applications/furnica.desktop \
                /usr/share/applications/org.thonny.Thonny.desktop /usr/share/applications/code.desktop \
                /usr/share/applications/firefox-esr.desktop; do
         if [ -e "$app" ]; then install -m 755 "$app" "$S/Desktop/$(basename "$app")"; else avert "Lipsește $app"; fi
@@ -1026,7 +1035,7 @@ main() {
     echo "===== configurare-q4os.sh — $(date '+%Y-%m-%d %H:%M') ====="
     verificari
     instaleaza_pachete
-    instaleaza_artcraft
+    instaleaza_din_github
     instaleaza_libreoffice
     instaleaza_programare
     optimizeaza_memoria
