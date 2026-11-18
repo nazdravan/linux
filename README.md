@@ -2,8 +2,8 @@
 
 Scripturi care transformă un calculator slab (2 GB RAM, HDD, 64 de biți) într-un
 calculator de clasă: **Linux cu aspect de Windows 10**, optimizat pentru memorie
-puțină, cu tastatură română, cu un cont comun **„elev"** în care Desktopul, Downloads și
-Documents se golesc singure după fiecare oră.
+puțină, cu tastatură română, cu un cont comun **„elev"** în care Desktopul și Coșul de gunoi
+se golesc singure după fiecare oră.
 
 Sunt trei variante, câte una pentru fiecare sistem:
 
@@ -26,7 +26,7 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată programele de birou), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
 | **Limbă și tastatură** | sistemul rămâne în limba aleasă la instalare (engleză); se adaugă tastatura Română (standard) lângă US, care rămâne implicită; comutare cu **Alt+Shift** |
 | **Contul „elev"** | fără drepturi de administrator, fără blocare de ecran, fără ferestre de bun-venit și actualizări; intră automat la pornire |
-| **Resetare** | la ieșirea din sesiune și la repornire, **Desktop, Downloads și Documents** revin la șablon (fișierele elevilor de acolo se șterg, scurtăturile revin). Restul contului (Pictures, Music, setările, Firefox…) rămâne neatins. Dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) nu se șterge niciodată |
+| **Resetare** | la ieșirea din sesiune și la repornire, **Desktopul** revine la șablon (fișierele elevilor de pe el se șterg, scurtăturile revin) și se golește **Coșul de gunoi**. Restul contului (Documents, Downloads, Pictures, setările, Firefox…) rămâne neatins. Dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) nu se șterge niciodată |
 
 ## Instalare dintr-o comandă
 
@@ -88,7 +88,7 @@ sudo ELEV_PAROLA=1234 AUTOLOGIN=0 TASTATURI=us,ro,ru VARIANTE=,std, bash configu
 | `TASTATURI` / `VARIANTE` | `us,ro` / `,std` | aranjamentele tastaturii (primul e implicit) |
 | `ARTCRAFT` | `wordcraft gridcraft deckcraft` | programele ArtCraft instalate (`""` = niciunul) |
 | `LIBREOFFICE` | `1` | instalează și LibreOffice, de rezervă (în meniu, la toate programele) |
-| `RESETARE` | `Desktop Downloads Documents` | dosarele care se refac la resetare; `tot` = tot contul, ca la un cont nou (se pot adăuga și altele, de ex. `"Desktop Downloads Documents .local/share/Trash"` golește și Coșul) |
+| `RESETARE` | `Desktop .local/share/Trash` | ce se reface la resetare: Desktopul și Coșul de gunoi; se pot adăuga și alte dosare, de ex. `"Desktop .local/share/Trash Downloads Documents"`; `tot` = tot contul, ca la un cont nou |
 | `TEMA_WIN10` | `1` | descarcă tema Windows 10 (altfel rămâne tema Mint, albastră) |
 | `ACTUALIZARE` | `1` | instalează și actualizările sistemului |
 
@@ -106,8 +106,7 @@ sudo cont-elev pauza        # oprește resetarea
 sudo cont-elev salveaza     # salvează contul elevului ca nou șablon
 ```
 
-Alte comenzi: `sudo cont-elev stare`, `sudo cont-elev reseteaza` (golește acum dosarele din
-`RESETARE`), `sudo cont-elev reseteaza-tot` (tot contul revine la șablon: bara, fundalul,
+Alte comenzi: `sudo cont-elev stare`, `sudo cont-elev reseteaza` (golește acum Desktopul și Coșul), `sudo cont-elev reseteaza-tot` (tot contul revine la șablon: bara, fundalul,
 setările — util dacă elevii au stricat ceva), `sudo cont-elev anuleaza` (revine la
 șablonul anterior), `sudo cont-elev ajutor`.
 

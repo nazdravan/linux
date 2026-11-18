@@ -17,7 +17,7 @@ ELEV_USER="${ELEV_USER:-elev}"
 ELEV_NUME="${ELEV_NUME:-Elev}"
 ELEV_PAROLA="${ELEV_PAROLA:-elev}"
 AUTOLOGIN="${AUTOLOGIN:-1}"                # 1 = la pornire intră direct în contul elev
-RESETARE="${RESETARE:-Desktop Downloads Documents}"   # dosarele care se refac la resetare ("tot" = tot contul)
+RESETARE="${RESETARE:-Desktop .local/share/Trash}"   # se refac la resetare: Desktopul și Coșul ("tot" = tot contul)
 LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge ("" = fără)
 TASTATURI="${TASTATURI:-us,ro}"
 VARIANTE="${VARIANTE:-,std}"

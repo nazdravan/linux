@@ -9,7 +9,7 @@ resetează. Utilizatorul (profesor de informatică) scrie în română — răsp
   Limba sistemului rămâne engleza (nu se instalează pachete de limbă română, nu se schimbă locale);
   se adaugă doar tastatura română, cu `us` implicit (`TASTATURI=us,ro`). LibreOffice se instalează
   doar de rezervă (`LIBREOFFICE=1`, fără pachete de limbă, nu pe Desktop). Resetarea refă doar
-  `RESETARE="Desktop Downloads Documents"` din șablon; restul contului rămâne (`tot` = tot contul,
+  `RESETARE="Desktop .local/share/Trash"` (Desktopul din șablon, Coșul golit); restul contului rămâne (`tot` = tot contul,
   `cont-elev reseteaza-tot`; scriptul de configurare folosește `reseteaza-tot`).
 - `configurare-sala.sh` — un singur script bash, autonom (se copiază pe stick); toate
   fișierele de configurare sunt generate din el prin heredoc. Ținta: Linux Mint 22.x/23.x XFCE.
