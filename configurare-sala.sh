@@ -21,7 +21,6 @@ ELEV_NUME="${ELEV_NUME:-Elev}"            # numele afișat la logare
 ELEV_PAROLA="${ELEV_PAROLA:-elev}"        # parola contului elev
 AUTOLOGIN="${AUTOLOGIN:-1}"               # 1 = la pornire intră direct în contul elev
 RESETARE="${RESETARE:-Desktop .local/share/Trash}"   # se refac la resetare: Desktopul și Coșul ("tot" = tot contul)
-LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge la resetare ("" = fără)
 TASTATURI="${TASTATURI:-us,ro}"           # aranjamente tastatură (ex: "us,ro,ru")
 VARIANTE="${VARIANTE:-,std}"              # variante (std = română standard, cu ș ț corecte)
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"   # Alt+Shift, ca în Windows
@@ -684,9 +683,6 @@ EOF
     for app in "$WORD" "$EXCEL" "$PPT" "$PAINT" "$CANGUR" "$FURNICA" "$THONNY" "$VSCODE" "$FIREFOX" $CHROMIUM_L; do
         copiaza_lansator "$app" "$S/Desktop/$app" || avert "Lipsește $app"
     done
-    if [ -n "$LUCRARI_DIR" ]; then
-        ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
-    fi
 
     # --- Visual Studio Code: fără telemetrie, fără pagina de bun-venit, fără keyring --------
     local vsc
@@ -973,11 +969,6 @@ XSession=xfce
 SystemAccount=false
 EOF
 
-    if [ -n "$LUCRARI_DIR" ]; then
-        install -d -o "$ELEV_USER" -g "$ELEV_USER" -m 2775 "$LUCRARI_DIR"
-        ok "Dosarul $LUCRARI_DIR nu se șterge (pe Desktop: „Lucrări (nu se șterg)\")"
-    fi
-
     # LightDM: resetare la ieșire + intrare automată.
     install -d /etc/lightdm/lightdm.conf.d
     {
@@ -1016,8 +1007,7 @@ rezumat() {
   Repornește calculatorul:  sudo reboot
 
   • Contul elevilor: „$ELEV_USER" (parola „$ELEV_PAROLA")$( [ "$AUTOLOGIN" = 1 ] && echo ", intră automat la pornire")
-  • Tot ce schimbă elevii se șterge la ieșire și la repornire,
-    în afară de dosarul ${LUCRARI_DIR:-(dezactivat)}.
+  • La ieșire și la repornire se refac: $( [ "$RESETARE" = tot ] && echo "tot contul" || echo "$RESETARE" | sed "s/\.local\/share\/Trash/Coșul de gunoi/" )
   • Profesorul: ieși din sesiune și alege contul tău în ecranul de logare.
   • Ajutor pentru contul elev:  sudo cont-elev ajutor
 

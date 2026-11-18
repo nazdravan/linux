@@ -18,7 +18,6 @@ ELEV_NUME="${ELEV_NUME:-Elev}"
 ELEV_PAROLA="${ELEV_PAROLA:-elev}"
 AUTOLOGIN="${AUTOLOGIN:-1}"                # 1 = la pornire intră direct în contul elev
 RESETARE="${RESETARE:-Desktop .local/share/Trash}"   # se refac la resetare: Desktopul și Coșul ("tot" = tot contul)
-LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge ("" = fără)
 TASTATURI="${TASTATURI:-us,ro}"
 VARIANTE="${VARIANTE:-,std}"
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
@@ -785,7 +784,6 @@ LISTA
                /usr/share/applications/firefox-esr.desktop $CHR_DESK; do
         if [ -e "$app" ]; then install -m 755 "$app" "$S/Desktop/$(basename "$app")"; else avert "Lipsește $app"; fi
     done
-    [ -n "$LUCRARI_DIR" ] && ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
 
     # --- Visual Studio Code: fără telemetrie, fără pagina de bun-venit, fără keyring --------
     local vsc
@@ -1025,11 +1023,6 @@ creeaza_cont_elev() {
     done
     ok "Fără drepturi de administrator, parola: $ELEV_PAROLA"
 
-    if [ -n "$LUCRARI_DIR" ]; then
-        install -d -o "$ELEV_USER" -g "$ELEV_USER" -m 2775 "$LUCRARI_DIR"
-        ok "Dosarul $LUCRARI_DIR nu se șterge (pe Desktop: „Lucrări (nu se șterg)\")"
-    fi
-
     [ -f "$TDM_DIR/tdmrc.inainte-de-sala" ] || cp -a "$TDM_DIR/tdmrc" "$TDM_DIR/tdmrc.inainte-de-sala"
     if [ "$AUTOLOGIN" = "1" ]; then
         seteaza_tdmrc "X-:0-Core" AutoLoginEnable true
@@ -1060,8 +1053,7 @@ rezumat() {
   Repornește calculatorul:  sudo reboot
 
   • Contul elevilor: „$ELEV_USER" (parola „$ELEV_PAROLA")$( [ "$AUTOLOGIN" = 1 ] && echo ", intră automat la pornire")
-  • Tot ce schimbă elevii se șterge la ieșire și la repornire,
-    în afară de dosarul ${LUCRARI_DIR:-(dezactivat)}.
+  • La ieșire și la repornire se refac: $( [ "$RESETARE" = tot ] && echo "tot contul" || echo "$RESETARE" | sed "s/\.local\/share\/Trash/Coșul de gunoi/" )
   • Profesorul: ieși din sesiune și alege contul tău în ecranul de logare.
   • Ajutor pentru contul elev:  sudo cont-elev ajutor
   • Setările vechi ale ecranului de logare: $TDM_DIR/*.inainte-de-sala

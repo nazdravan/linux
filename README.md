@@ -26,7 +26,7 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată programele de birou), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
 | **Limbă și tastatură** | sistemul rămâne în limba aleasă la instalare (engleză); se adaugă tastatura Română (standard) lângă US, care rămâne implicită; comutare cu **Alt+Shift** |
 | **Contul „elev"** | fără drepturi de administrator, ecranul nu se blochează niciodată (nici singur, nici cu Super+L sau din meniu), fără ferestre de bun-venit și actualizări; intră automat la pornire |
-| **Resetare** | la ieșirea din sesiune și la repornire, **Desktopul** revine la șablon (fișierele elevilor de pe el se șterg, scurtăturile revin) și se golește **Coșul de gunoi**. Restul contului (Documents, Downloads, Pictures, setările, Firefox…) rămâne neatins. Dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) nu se șterge niciodată |
+| **Resetare** | la ieșirea din sesiune și la repornire, **Desktopul** revine la șablon (fișierele elevilor de pe el se șterg, scurtăturile revin) și se golește **Coșul de gunoi**. Restul contului (Documents, Downloads, Pictures, setările, Firefox…) rămâne neatins. |
 
 ## Instalare dintr-o comandă
 
@@ -42,14 +42,14 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/mai
 Setările (vezi tabelul de mai jos) se pun după `sudo`, de exemplu
 `sudo AUTOLOGIN=0 bash -c "$(curl -fsSL …/instalare.sh)"`.
 
-Dezinstalare (întreabă înainte; programele și dosarul cu lucrări rămân):
+Dezinstalare (întreabă înainte; programele rămân):
 
 ```bash
 sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/dezinstalare.sh)"
 ```
 
 Cu `PASTREAZA_ELEV=1` contul elev rămâne, cu `STERGE_LUCRARI=1` se șterge și
-`/srv/lucrari`, cu `DA=1` nu mai întreabă.
+`/srv/lucrari` (dosarul de lucrări din versiunile vechi), cu `DA=1` nu mai întreabă.
 
 ## Pași
 
@@ -84,7 +84,6 @@ sudo ELEV_PAROLA=1234 AUTOLOGIN=0 TASTATURI=us,ro,ru VARIANTE=,std, bash configu
 |---|---|---|
 | `ELEV_USER` / `ELEV_PAROLA` | `elev` / `elev` | contul elevilor |
 | `AUTOLOGIN` | `1` | la pornire intră direct în contul elev |
-| `LUCRARI_DIR` | `/srv/lucrari` | dosarul care nu se șterge (`""` = fără) |
 | `TASTATURI` / `VARIANTE` | `us,ro` / `,std` | aranjamentele tastaturii (primul e implicit) |
 | `ARTCRAFT` | `wordcraft gridcraft deckcraft pdfcraft` | programele ArtCraft instalate (`""` = niciunul) |
 | `EXECUTANTI` | `cangurul furnica` | executanții [Cangurul](https://github.com/nazdravan/cangurul) și [Furnica](https://github.com/nazdravan/furnica) (`""` = niciunul) |
@@ -189,7 +188,7 @@ Diferențe față de Mint:
 | Resetarea contului | LightDM + serviciu systemd | ecranul de logare **slimski** (`sessionstart_cmd` / `sessionstop_cmd`), la intrarea și la ieșirea elevului |
 | zram, earlyoom | servicii systemd | pornite de slimski înainte de logare (`/usr/local/sbin/sala-servicii`), deci merg cu orice init: runit, sysvinit, dinit, s6 |
 
-Comanda `sudo cont-elev …`, dosarul „Lucrări (nu se șterg)", WordCraft/GridCraft/DeckCraft,
+Comanda `sudo cont-elev …`, WordCraft/GridCraft/DeckCraft,
 tastatura română și Alt+Shift sunt la fel.
 
 Setările originale ale ecranului de logare sunt păstrate în

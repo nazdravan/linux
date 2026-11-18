@@ -21,7 +21,6 @@ ELEV_NUME="${ELEV_NUME:-Elev}"
 ELEV_PAROLA="${ELEV_PAROLA:-elev}"
 AUTOLOGIN="${AUTOLOGIN:-1}"                # 1 = la pornire intră direct în contul elev
 RESETARE="${RESETARE:-Desktop .local/share/Trash}"   # se refac la resetare: Desktopul și Coșul ("tot" = tot contul)
-LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge ("" = fără)
 TASTATURI="${TASTATURI:-us,ro}"
 VARIANTE="${VARIANTE:-,std}"
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
@@ -712,7 +711,6 @@ code|Visual Studio Code
 firefox-esr|Internet (Firefox)
 $([ -x /usr/bin/chromium ] && echo "chromium|Internet (Chromium)")
 LISTA
-    [ -n "$LUCRARI_DIR" ] && ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
 
     # --- Visual Studio Code: fără telemetrie, fără pagina de bun-venit, fără keyring --------
     local vsc
@@ -932,11 +930,6 @@ creeaza_cont_elev() {
     done
     ok "Fără drepturi de administrator, parola: $ELEV_PAROLA"
 
-    if [ -n "$LUCRARI_DIR" ]; then
-        install -d -o "$ELEV_USER" -g "$ELEV_USER" -m 2775 "$LUCRARI_DIR"
-        ok "Dosarul $LUCRARI_DIR nu se șterge (pe Desktop: „Lucrări (nu se șterg)\")"
-    fi
-
     [ -f "$SLIMSKI_CONF.inainte-de-sala" ] || cp -a "$SLIMSKI_CONF" "$SLIMSKI_CONF.inainte-de-sala"
     seteaza_slimski sessionstart_cmd "/usr/local/sbin/cont-elev-sesiune start %username"
     seteaza_slimski sessionstop_cmd  "/usr/local/sbin/cont-elev-sesiune stop %username"
@@ -969,8 +962,7 @@ rezumat() {
   Repornește calculatorul:  sudo reboot
 
   • Contul elevilor: „$ELEV_USER" (parola „$ELEV_PAROLA")$( [ "$AUTOLOGIN" = 1 ] && echo ", intră automat la pornire")
-  • Tot ce schimbă elevii se șterge la ieșire și la repornire,
-    în afară de dosarul ${LUCRARI_DIR:-(dezactivat)}.
+  • La ieșire și la repornire se refac: $( [ "$RESETARE" = tot ] && echo "tot contul" || echo "$RESETARE" | sed "s/\.local\/share\/Trash/Coșul de gunoi/" )
   • Profesorul: ieși din sesiune și scrie numele contului tău în ecranul de logare.
   • Ajutor pentru contul elev:  sudo cont-elev ajutor
   • Setările vechi ale ecranului de logare: $SLIMSKI_CONF.inainte-de-sala

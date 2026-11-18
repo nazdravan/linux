@@ -475,7 +475,7 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
       <li><button role="tab" aria-selected="false"><span class="sq"></span>Paint</button></li>
       <li><button role="tab" aria-selected="false"><span class="sq"></span>Salvarea</button></li>
     </ul>
-    <p class="fact rise" style="--i:2" id="fact" aria-live="polite">Bara jos, butonul Start în stânga, ceasul cu data în dreapta. Pe Desktop: Acest PC, Coș de gunoi, Lucrări și programele.</p>
+    <p class="fact rise" style="--i:2" id="fact" aria-live="polite">Bara jos, butonul Start în stânga, ceasul cu data în dreapta. Pe Desktop: Acest PC, Coș de gunoi și programele.</p>
   </div>
   <div class="view rise" style="--i:1" id="view" data-c="0">
     <p class="cap" id="view-cap">Q4OS, după rularea scriptului</p>
@@ -507,9 +507,9 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
     </div>
     <div class="way in-2 rise" style="--i:1">
       <h3>Dezinstalare</h3>
-      <p>Șterge contul elev, resetarea, intrarea automată și tema. Programele, limba și dosarul cu lucrări rămân. Întreabă înainte să schimbe ceva.</p>
+      <p>Șterge contul elev, resetarea, intrarea automată și tema. Programele și limba rămân. Întreabă înainte să schimbe ceva.</p>
       <div class="code" data-ui><pre><code><span class="p">$</span> sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/dezinstalare.sh)"</code></pre><button class="btn light" type="button" data-copy>Copiază</button></div>
-      <p class="alt">Păstrezi contul elev cu <b>PASTREAZA_ELEV=1</b>, ștergi și lucrările cu <b>STERGE_LUCRARI=1</b>, puse după sudo.</p>
+      <p class="alt">Păstrezi contul elev cu <b>PASTREAZA_ELEV=1</b>, cu <b>DA=1</b> nu mai întreabă, puse după sudo.</p>
     </div>
   </div>
 </section>
@@ -526,10 +526,6 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
     </div>
     <div class="band c2" role="switch" tabindex="0" aria-checked="true" data-var="TEMA_WIN10" data-on="1" data-off="0" data-def="1">
       <div class="say"><b>Tema și iconițele Windows 10</b><span class="then"><span><span>Descarcă tema B00merang Windows 10. Fără ea rămâne tema distribuției.</span></span></span></div>
-      <span class="toggle" data-ui aria-hidden="true"></span>
-    </div>
-    <div class="band c3" role="switch" tabindex="0" aria-checked="true" data-var="LUCRARI_DIR" data-on="/srv/lucrari" data-off='""' data-def="/srv/lucrari">
-      <div class="say"><b>Un dosar care nu se șterge</b><span class="then"><span><span>„Lucrări (nu se șterg)” pe Desktop, în /srv/lucrari. Desktopul și Coșul de gunoi se golesc la fiecare oră.</span></span></span></div>
       <span class="toggle" data-ui aria-hidden="true"></span>
     </div>
     <div class="band c1" role="switch" tabindex="0" aria-checked="false" data-var="TASTATURI" data-on="us,ro,ru" data-off="us,ro" data-def="us,ro" data-var2="VARIANTE" data-on2=",std," data-off2=",std">
@@ -551,13 +547,13 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
 <section class="live wrap" id="incearca" aria-labelledby="h-live">
   <div class="live-intro">
     <h2 id="h-live" class="rise">Fiecare oră începe curat</h2>
-    <p class="rise" style="--i:1">Toți elevii intră în același cont, „elev”. Ce lasă pe Desktop și în Coșul de gunoi se șterge la ieșirea din sesiune și la repornire. Rămâne ce salvează în dosarul <b>Lucrări (nu se șterg)</b>.</p>
+    <p class="rise" style="--i:1">Toți elevii intră în același cont, „elev”. Ce lasă pe Desktop și în Coșul de gunoi se șterge la ieșirea din sesiune și la repornire. Rămâne ce salvează în <b>Documents</b>.</p>
     <p class="rise" style="--i:2">Încearcă: fă dezordine pe desktop, apoi ieși din sesiune.</p>
     <div class="actions" id="actions" hidden>
       <button type="button" data-act="fundal"><span class="sq"></span>Schimbă fundalul în roz</button>
       <button type="button" data-act="firefox"><span class="sq"></span>Șterge Internetul de pe Desktop</button>
       <button type="button" data-act="desktop"><span class="sq"></span>Salvează „joc_de_rupt.docx” pe Desktop</button>
-      <button type="button" data-act="lucrari"><span class="sq"></span>Salvează „proiect_clasa7.pptx” în Lucrări</button>
+      <button type="button" data-act="lucrari"><span class="sq"></span>Salvează „proiect_clasa7.pptx” în Documents</button>
       <button type="button" class="btn" data-act="iesire">Ieșire din sesiune</button>
     </div>
     <p class="status" id="status" aria-live="polite"></p>
@@ -567,7 +563,6 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
       <div class="desk-icons" id="icons">
         <div class="di" data-k="pc"><span class="ico pc">PC</span>Acest PC</div>
         <div class="di" data-k="trash"><span class="ico trash">C</span>Coș de gunoi</div>
-        <div class="di" data-k="lucrari"><span class="ico dir"></span>Lucrări (nu se șterg)</div>
         <div class="di" data-k="firefox"><span class="ico ff">F</span>Internet</div>
         <div class="di" data-k="w"><span class="ico w">W</span>Documente</div>
         <div class="di" data-k="x"><span class="ico x">X</span>Tabele</div>
@@ -575,7 +570,7 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
         <div class="di" data-k="paint"><span class="ico paint">D</span>Desen</div>
       </div>
       <div class="desk-win" id="win" hidden>
-        <header><span>Lucrări (nu se șterg)</span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="#1b1b1b" stroke-width="1.4"/></svg></header>
+        <header><span>Documents</span><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="#1b1b1b" stroke-width="1.4"/></svg></header>
         <ul id="win-list"><li>(gol)</li></ul>
       </div>
       <div class="desk-bar">
@@ -655,7 +650,7 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
 <section class="variants" id="variante" aria-labelledby="h-var">
   <div class="variants-head">
     <h2 id="h-var" class="rise">Trei variante</h2>
-    <p class="rise" style="--i:1">Contul elevului, dosarul Lucrări, formatele Office, româna și Alt+Shift sunt la fel în toate. Diferă cât de ușor e sistemul și cât de aproape arată de Windows.</p>
+    <p class="rise" style="--i:1">Contul elevului, formatele Office, româna și Alt+Shift sunt la fel în toate. Diferă cât de ușor e sistemul și cât de aproape arată de Windows.</p>
   </div>
 
   <div class="cat rise">
@@ -693,7 +688,7 @@ footer { margin-top: 88px; padding: 0 var(--m) 32px; }
   <h2 id="h-faq" class="rise">Întrebări de la colegi</h2>
   <div class="tiles rise" style="--i:1">
     <details name="faq" open><summary>Trebuie să știu Linux?<span class="plus"></span></summary><p class="ans">Nu mult. Instalezi sistemul de pe stick, ca pe Windows, și scrii o singură comandă în Terminal. Restul face scriptul.</p></details>
-    <details name="faq"><summary>Ce se întâmplă cu lucrările elevilor?<span class="plus"></span></summary><p class="ans">Tot ce salvează în dosarul „Lucrări (nu se șterg)” rămâne. Dosarul e în <code>/srv/lucrari</code>, în afara contului elev, și se poate copia pe stick la sfârșitul orei.</p></details>
+    <details name="faq"><summary>Ce se întâmplă cu lucrările elevilor?<span class="plus"></span></summary><p class="ans">Ce salvează în Documents rămâne de la o oră la alta. Ce lasă pe Desktop și în Coșul de gunoi se șterge la ieșirea din sesiune.</p></details>
     <details name="faq"><summary>Cum intru eu, profesorul?<span class="plus"></span></summary><p class="ans">Ieși din sesiunea elevului și intri cu numele și parola ta în ecranul de logare. Doar contul tău are drepturi de administrator.</p></details>
     <details name="faq"><summary>Pot schimba ce văd elevii?<span class="plus"></span></summary><p class="ans">Da: <code>sudo cont-elev pauza</code>, aranjezi contul elev, apoi <code>sudo cont-elev salveaza</code>. Șablonul vechi se întoarce cu <code>sudo cont-elev anuleaza</code>.</p></details>
     <details name="faq"><summary>Ce distribuție aleg?<span class="plus"></span></summary><p class="ans">Mint, dacă merge bine pe calculatoarele tale. Q4OS dacă Mint e prea greu, antiX pentru cele mai slabe. Cel mai bine e să le încerci pe un calculator.</p></details>
@@ -785,7 +780,7 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* showcase: slow crossfade, or pick */
 (() => {
   const facts = [
-    'Bara jos, butonul Start în stânga, ceasul cu data în dreapta. Pe Desktop: Acest PC, Coș de gunoi, Lucrări și programele.',
+    'Bara jos, butonul Start în stânga, ceasul cu data în dreapta. Pe Desktop: Acest PC, Coș de gunoi și programele.',
     'Writer cu file sus, ca panglica din Office. Fără fereastra de bun-venit la fiecare oră.',
     'KolourPaint, cu meniurile în română. Pe antiX: Drawing.',
     'Salvarea propune .docx din prima. La fel .xlsx în Calc și .pptx în Impress.'
@@ -874,7 +869,7 @@ document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click'
     }
     if (a === 'lucrari') {
       saved.push('proiect_clasa7.pptx'); list.innerHTML = '<li>proiect_clasa7.pptx</li>';
-      win.hidden = false; mark(b); say('Proiectul e în Lucrări.');
+      win.hidden = false; mark(b); say('Proiectul e în Documents.');
     }
     if (a === 'iesire') {
       cover.classList.add('on');
@@ -888,7 +883,7 @@ document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click'
         acts.querySelectorAll('button').forEach(x => { x.disabled = false; x.classList.remove('done'); });
         const n = changes === 1 ? 'o schimbare ștearsă' : changes + ' schimbări șterse';
         say(changes || saved.length
-          ? `Contul e ca nou: ${n}.` + (saved.length ? ' În Lucrări a rămas proiect_clasa7.pptx.' : '')
+          ? `Contul e ca nou: ${n}.` + (saved.length ? ' În Documents a rămas proiect_clasa7.pptx.' : '')
           : 'Nimic de șters: contul era deja curat.');
         changes = 0;
       }, 900);
