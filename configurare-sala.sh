@@ -20,11 +20,13 @@ ELEV_USER="${ELEV_USER:-elev}"            # numele contului pentru elevi
 ELEV_NUME="${ELEV_NUME:-Elev}"            # numele afișat la logare
 ELEV_PAROLA="${ELEV_PAROLA:-elev}"        # parola contului elev
 AUTOLOGIN="${AUTOLOGIN:-1}"               # 1 = la pornire intră direct în contul elev
+RESETARE="${RESETARE:-Desktop Downloads Documents}"   # dosarele care se refac la resetare ("tot" = tot contul)
 LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge la resetare ("" = fără)
 TASTATURI="${TASTATURI:-us,ro}"           # aranjamente tastatură (ex: "us,ro,ru")
 VARIANTE="${VARIANTE:-,std}"              # variante (std = română standard, cu ș ț corecte)
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"   # Alt+Shift, ca în Windows
 ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft}"   # programe de birou (getartcraft.com/apps)
+LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"             # 1 = descarcă tema și iconițele Windows 10
 ACTUALIZARE="${ACTUALIZARE:-1}"           # 1 = instalează și actualizările sistemului
 # -----------------------------------------------------------------------------
@@ -181,6 +183,20 @@ instaleaza_artcraft() {
 }
 
 # =============================================================================
+# LibreOffice, de rezervă pentru WordCraft/GridCraft/DeckCraft (fără pachetele de limbă).
+instaleaza_libreoffice() {
+    [ "$LIBREOFFICE" = "1" ] || return 0
+    pas "LibreOffice (de rezervă)"
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    if apt-get "${apt_opt[@]}" install --no-install-recommends \
+            libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-gtk3; then
+        ok "LibreOffice Writer, Calc, Impress"
+    else
+        avert "Nu am putut instala LibreOffice"; PASI_ESUATI+=("LibreOffice")
+    fi
+}
+
+# =============================================================================
 optimizeaza_memoria() {
     pas "Optimizez pentru 2 GB RAM și HDD"
 
@@ -206,7 +222,7 @@ EOF
     # sau KolourPaint (lucrarea elevului).
     cat > /etc/default/earlyoom <<'EOF'
 # Configurat de configurare-sala.sh
-EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|lightdm|xfce4-session|xfwm4|xfce4-panel|xfdesktop|wordcraft|gridcraft|deckcraft|kolourpaint)$'"
+EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|lightdm|xfce4-session|xfwm4|xfce4-panel|xfdesktop|wordcraft|gridcraft|deckcraft|soffice.bin|kolourpaint)$'"
 EOF
     if are_systemd; then
         optional "earlyoom pornit" systemctl enable --now earlyoom.service
@@ -590,6 +606,32 @@ EOF
         ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
     fi
 
+    # --- LibreOffice (de rezervă): interfață cu file (ca Office) și salvare în .docx/.xlsx/.pptx
+    scrie "$S/.config/libreoffice/4/user/registrymodifications.xcu" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.text.TextDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>MS Word 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.sheet.SpreadsheetDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Calc MS Excel 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.presentation.PresentationDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Impress MS PowerPoint 2007 XML</value></prop></item>
+<item oor:path="/org.openoffice.Office.Common/Save/Document"><prop oor:name="WarnAlienFormat" oor:op="fuse"><value>false</value></prop></item>
+<item oor:path="/org.openoffice.Office.Common/Misc"><prop oor:name="ShowTipOfTheDay" oor:op="fuse"><value>false</value></prop></item>
+<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Writer']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
+<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Calc']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
+<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Impress']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
+<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Writer']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
+<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Calc']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
+<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Impress']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
+</oor:items>
+EOF
+
+    # Fără fereastra „Bun venit" / „Ce e nou" (altfel apare după fiecare resetare).
+    local lo_ver_scurt
+    lo_ver_scurt="$(dpkg-query -W -f='${Version}' libreoffice-core 2>/dev/null | sed -E 's/^[0-9]+://; s/^([0-9]+\.[0-9]+).*/\1/')"
+    if [ -n "$lo_ver_scurt" ]; then
+        sed -i "s|</oor:items>|<item oor:path=\"/org.openoffice.Setup/Product\"><prop oor:name=\"ooSetupLastVersion\" oor:op=\"fuse\"><value>$lo_ver_scurt</value></prop></item>\n<item oor:path=\"/org.openoffice.Office.Common/Misc\"><prop oor:name=\"FirstRun\" oor:op=\"fuse\"><value>false</value></prop></item>\n</oor:items>|" \
+            "$S/.config/libreoffice/4/user/registrymodifications.xcu"
+    fi
+
     # --- Programe care pornesc singure: fără ecran de bun-venit, fără actualizări,
     #     fără blocarea ecranului cu parolă (elevul e în contul comun).
     install -d "$S/.config/autostart"
@@ -656,6 +698,7 @@ EOF
 # Instalat de configurare-sala.sh — administrarea contului comun al elevilor.
 ELEV="$ELEV_USER"
 DATE_DIR="$DATE_DIR"
+RESETARE="$RESETARE"   # dosarele care se refac la resetare ("tot" = tot contul)
 EOF
     cat >> /usr/local/sbin/cont-elev <<'EOF'
 set -euo pipefail
@@ -666,11 +709,26 @@ ACASA="$(getent passwd "$ELEV" | cut -d: -f6)"
 
 este_logat() { who | awk '{print $1}' | grep -x "$ELEV" >/dev/null; }
 
+# $1 = „tot": tot contul revine la șablon (setări, bară, Firefox…). Altfel se refac doar
+# dosarele din RESETARE (ca în șablon); restul contului rămâne cum l-a lăsat elevul.
 reseteaza() {
     [ -d "$SABLON" ] || { echo "Lipsește șablonul $SABLON"; exit 1; }
     pkill -KILL -u "$ELEV" 2>/dev/null || true
     sleep 1
-    rsync -a --delete "$SABLON"/ "$ACASA"/
+    if [ "${1:-}" = "tot" ] || [ "$RESETARE" = "tot" ]; then
+        rsync -a --delete "$SABLON"/ "$ACASA"/
+    else
+        local d
+        for d in $RESETARE; do
+            case "$d" in ""|/*|*..*) continue ;; esac
+            if [ -d "$SABLON/$d" ]; then
+                install -d "$ACASA/$d"
+                rsync -a --delete "$SABLON/$d"/ "$ACASA/$d"/
+            else
+                rm -rf "${ACASA:?}/$d"
+            fi
+        done
+    fi
     chown -R "$ELEV:$ELEV" "$ACASA"
     chmod 750 "$ACASA"
 }
@@ -684,7 +742,8 @@ Administrarea contului „$ELEV" (rulează cu sudo):
   sudo cont-elev salveaza     salvează contul elevului, așa cum e acum, ca nou șablon
                               (și repornește resetarea automată)
   sudo cont-elev porneste     repornește resetarea automată, fără a salva
-  sudo cont-elev reseteaza    resetează chiar acum contul elevului
+  sudo cont-elev reseteaza    resetează chiar acum dosarele: $RESETARE
+  sudo cont-elev reseteaza-tot  tot contul revine la șablon (și setările, bara, Firefox)
   sudo cont-elev anuleaza     revine la șablonul de dinainte de ultima salvare
 
 Cum schimbi ce văd elevii (iconițe, fundal, programe pe Desktop):
@@ -705,7 +764,10 @@ case "${1:-ajutor}" in
         reseteaza ;;
     reseteaza|reset)
         if este_logat; then echo "Elevul este încă logat. Mai întâi ieși din sesiunea lui."; exit 1; fi
-        reseteaza; echo "Contul $ELEV a fost resetat." ;;
+        reseteaza; echo "Contul $ELEV a fost resetat ($RESETARE)." ;;
+    reseteaza-tot)
+        if este_logat; then echo "Elevul este încă logat. Mai întâi ieși din sesiunea lui."; exit 1; fi
+        reseteaza tot; echo "Tot contul $ELEV a revenit la șablon." ;;
     pauza)
         touch "$PAUZA"
         echo "Resetarea automată este OPRITĂ. Modificările din contul $ELEV se păstrează."
@@ -733,7 +795,7 @@ case "${1:-ajutor}" in
         mv "$SABLON" "$DATE_DIR/sablon.nou"
         mv "$DATE_DIR/sablon.anterior" "$SABLON"
         mv "$DATE_DIR/sablon.nou" "$DATE_DIR/sablon.anterior"
-        echo "Am revenit la șablonul anterior. Se aplică la următoarea resetare." ;;
+        echo "Am revenit la șablonul anterior. Ca să-l aplici acum: sudo cont-elev reseteaza-tot" ;;
     stare)
         if [ -e "$PAUZA" ]; then echo "Resetare automată: OPRITĂ (pauză)"; else echo "Resetare automată: PORNITĂ"; fi
         if este_logat; then echo "Elevul este logat acum."; fi ;;
@@ -830,7 +892,7 @@ EOF
     if who | awk '{print $1}' | grep -x "$ELEV_USER" >/dev/null; then
         avert "Elevul este logat acum; profilul nou se aplică după ce iese din sesiune / la repornire"
     else
-        /usr/local/sbin/cont-elev reseteaza >/dev/null
+        /usr/local/sbin/cont-elev reseteaza-tot >/dev/null
         ok "Contul elev are profilul nou"
     fi
 }
@@ -861,6 +923,7 @@ main() {
     verificari
     instaleaza_pachete
     instaleaza_artcraft
+    instaleaza_libreoffice
     optimizeaza_memoria
     seteaza_tastatura
     instaleaza_tema

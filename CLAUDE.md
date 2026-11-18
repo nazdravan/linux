@@ -7,7 +7,10 @@ resetează. Utilizatorul (profesor de informatică) scrie în română — răsp
 - Decizii: programele de birou sunt ArtCraft (WordCraft/GridCraft/DeckCraft, `.deb` din
   `github.com/storytold/<app>/releases/latest`, verificat cu `SHA256SUMS.txt`) — **nu** LibreOffice.
   Limba sistemului rămâne engleza (nu se instalează pachete de limbă română, nu se schimbă locale);
-  se adaugă doar tastatura română, cu `us` implicit (`TASTATURI=us,ro`).
+  se adaugă doar tastatura română, cu `us` implicit (`TASTATURI=us,ro`). LibreOffice se instalează
+  doar de rezervă (`LIBREOFFICE=1`, fără pachete de limbă, nu pe Desktop). Resetarea refă doar
+  `RESETARE="Desktop Downloads Documents"` din șablon; restul contului rămâne (`tot` = tot contul,
+  `cont-elev reseteaza-tot`; scriptul de configurare folosește `reseteaza-tot`).
 - `configurare-sala.sh` — un singur script bash, autonom (se copiază pe stick); toate
   fișierele de configurare sunt generate din el prin heredoc. Ținta: Linux Mint 22.x/23.x XFCE.
 - `configurare-antix.sh` — aceeași idee pentru antiX 26.x full x64 (IceWM + zzzfm, slimski, fără

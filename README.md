@@ -2,8 +2,8 @@
 
 Scripturi care transformă un calculator slab (2 GB RAM, HDD, 64 de biți) într-un
 calculator de clasă: **Linux cu aspect de Windows 10**, optimizat pentru memorie
-puțină, cu tastatură română, cu un cont comun **„elev"** care revine singur la starea
-inițială.
+puțină, cu tastatură română, cu un cont comun **„elev"** în care Desktopul, Downloads și
+Documents se golesc singure după fiecare oră.
 
 Sunt trei variante, câte una pentru fiecare sistem:
 
@@ -21,12 +21,12 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | | |
 |---|---|
 | **Aspect Windows 10** | bara jos, meniu Start, ceas și dată în dreapta, „Arată desktopul" în colț, temă și iconițe Windows 10, fundal albastru, un singur spațiu de lucru |
-| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), KolourPaint (în loc de Paint), Firefox |
+| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), LibreOffice de rezervă, KolourPaint (în loc de Paint), Firefox |
 | **Ca în Office** | WordCraft, GridCraft și DeckCraft au panglică ca Office și lucrează direct cu **.docx, .xlsx, .pptx**; se descarcă de pe GitHub (ultima versiune, verificată cu SHA256) |
 | **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată programele de birou), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
 | **Limbă și tastatură** | sistemul rămâne în limba aleasă la instalare (engleză); se adaugă tastatura Română (standard) lângă US, care rămâne implicită; comutare cu **Alt+Shift** |
 | **Contul „elev"** | fără drepturi de administrator, fără blocare de ecran, fără ferestre de bun-venit și actualizări; intră automat la pornire |
-| **Resetare** | tot ce schimbă elevii se șterge la ieșirea din sesiune și la repornire. Excepție: dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) |
+| **Resetare** | la ieșirea din sesiune și la repornire, **Desktop, Downloads și Documents** revin la șablon (fișierele elevilor de acolo se șterg, scurtăturile revin). Restul contului (Pictures, Music, setările, Firefox…) rămâne neatins. Dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) nu se șterge niciodată |
 
 ## Instalare dintr-o comandă
 
@@ -87,6 +87,8 @@ sudo ELEV_PAROLA=1234 AUTOLOGIN=0 TASTATURI=us,ro,ru VARIANTE=,std, bash configu
 | `LUCRARI_DIR` | `/srv/lucrari` | dosarul care nu se șterge (`""` = fără) |
 | `TASTATURI` / `VARIANTE` | `us,ro` / `,std` | aranjamentele tastaturii (primul e implicit) |
 | `ARTCRAFT` | `wordcraft gridcraft deckcraft` | programele ArtCraft instalate (`""` = niciunul) |
+| `LIBREOFFICE` | `1` | instalează și LibreOffice, de rezervă (în meniu, la toate programele) |
+| `RESETARE` | `Desktop Downloads Documents` | dosarele care se refac la resetare; `tot` = tot contul, ca la un cont nou (se pot adăuga și altele, de ex. `"Desktop Downloads Documents .local/share/Trash"` golește și Coșul) |
 | `TEMA_WIN10` | `1` | descarcă tema Windows 10 (altfel rămâne tema Mint, albastră) |
 | `ACTUALIZARE` | `1` | instalează și actualizările sistemului |
 
@@ -104,8 +106,10 @@ sudo cont-elev pauza        # oprește resetarea
 sudo cont-elev salveaza     # salvează contul elevului ca nou șablon
 ```
 
-Alte comenzi: `sudo cont-elev stare`, `sudo cont-elev reseteaza`,
-`sudo cont-elev anuleaza` (revine la șablonul anterior), `sudo cont-elev ajutor`.
+Alte comenzi: `sudo cont-elev stare`, `sudo cont-elev reseteaza` (golește acum dosarele din
+`RESETARE`), `sudo cont-elev reseteaza-tot` (tot contul revine la șablon: bara, fundalul,
+setările — util dacă elevii au stricat ceva), `sudo cont-elev anuleaza` (revine la
+șablonul anterior), `sudo cont-elev ajutor`.
 
 ### 5. Copiază pe celelalte calculatoare
 
@@ -147,7 +151,7 @@ Alternativ, poți instala Mint pe fiecare calculator și rula scriptul pe fiecar
 
 | Fișier | Rol |
 |---|---|
-| `/var/lib/cont-elev/sablon/` | profilul „curat" al elevului, copiat la fiecare resetare |
+| `/var/lib/cont-elev/sablon/` | profilul „curat" al elevului; la fiecare resetare se copiază din el dosarele din `RESETARE` |
 | `/usr/local/sbin/cont-elev` | comanda pentru profesor |
 | `/usr/local/sbin/cont-elev-la-iesire` | resetarea la ieșirea din sesiune (LightDM) |
 | `/etc/systemd/system/cont-elev-reset.service` | resetarea la pornire |
