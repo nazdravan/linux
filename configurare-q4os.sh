@@ -25,6 +25,7 @@ COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
 ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft pdfcraft}"   # programe ArtCraft (getartcraft.com/apps)
 THONNY="${THONNY:-1}"                    # 1 = Thonny (Python pentru începători)
 VSCODE="${VSCODE:-1}"                    # 1 = Visual Studio Code
+CHROMIUM="${CHROMIUM:-1}"                # 1 = și Chromium (al doilea browser)
 EXECUTANTI="${EXECUTANTI:-cangurul furnica}"   # executanți pentru algoritmi (github.com/nazdravan)
 LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"              # 1 = descarcă tema GTK și iconițele Windows 10
@@ -230,6 +231,36 @@ instaleaza_programare() {
 }
 
 # =============================================================================
+# Chromium: al doilea browser (unele site-uri merg mai bine în el). Din depozitele
+# distribuției (Linux Mint și Debian au pachet .deb, nu snap), fără pachetele de limbă.
+# Politica: uBlock Origin Lite, fără procese în fundal după închidere, cache mic pe HDD.
+instaleaza_chromium() {
+    [ "$CHROMIUM" = "1" ] || return 0
+    pas "Chromium"
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    if ! apt-get "${apt_opt[@]}" install --no-install-recommends chromium; then
+        avert "Nu am putut instala Chromium"; PASI_ESUATI+=("Chromium"); return 0
+    fi
+    local d
+    for d in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed; do
+        install -d "$d"
+        cat > "$d/sala.json" <<'EOF'
+{
+  "ExtensionInstallForcelist": ["ddkjiahejlhfcafbddmgiahcphecmpfh;https://clients2.google.com/service/update2/crx"],
+  "BackgroundModeEnabled": false,
+  "MetricsReportingEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "PromotionalTabsEnabled": false,
+  "PasswordManagerEnabled": false,
+  "DiskCacheSize": 52428800,
+  "HighEfficiencyModeEnabled": true
+}
+EOF
+    done
+    ok "Chromium $(dpkg-query -W -f='${Version}' chromium 2>/dev/null | cut -d- -f1) (uBlock Origin Lite, setări pentru memorie puțină)"
+}
+
+# =============================================================================
 optimizeaza_memoria() {
     pas "Optimizez pentru 2 GB RAM și HDD"
 
@@ -391,6 +422,11 @@ construieste_sablon() {
     rm -rf "$S"; install -d -m 700 "$DATE_DIR"; install -d "$S"
     cp -a /etc/skel/. "$S"/
     local C="$S/.trinity/share/config"
+    # Chromium în meniul Start și pe Desktop doar dacă e instalat.
+    local CHR_FAV="" CHR_DESK=""
+    if [ -f /usr/share/applications/chromium.desktop ]; then
+        CHR_FAV="chromium.desktop,"; CHR_DESK=/usr/share/applications/chromium.desktop
+    fi
 
     # --- Fără asistentul Q4OS de la prima logare -----------------------------
     scrie "$S/.local/share/q4os/.frstlogq4.stp" <<'EOF'
@@ -458,6 +494,10 @@ Trash[\$e]=\$HOME/Desktop/Trash/
 
 [\$Version]
 update_info=tdeaccel.upd:trinity.3/r1,mouse_cursor_theme.upd:trinity.4.99,socks.upd:trinity.0/r1,kded.upd:trinity.0,twin.upd:trinity.2Xinerama,klippershortcuts.upd:04112002
+
+# Fără „Blochează sesiunea" (meniu, Ctrl+Alt+L) în contul elev.
+[KDE Action Restrictions][\$i]
+lock_screen=false
 EOF
 
     # --- Ferestre: albe, butoanele _ □ ✕ în dreapta, un singur spațiu de lucru
@@ -508,7 +548,7 @@ Applets2=KMenuButton_1,ServiceButton_1,ServiceButton_2,ServiceButton_3,ServiceBu
 [menus]
 MenuEntryFormat=NameOnly
 FirstRun=true
-Favorites=ai.storyteller.wordcraft.desktop,ai.storyteller.gridcraft.desktop,ai.storyteller.deckcraft.desktop,tde-kolourpaint.desktop,cangurul.desktop,furnica.desktop,org.thonny.Thonny.desktop,code.desktop,firefox-esr.desktop,tde-Home.desktop
+Favorites=ai.storyteller.wordcraft.desktop,ai.storyteller.gridcraft.desktop,ai.storyteller.deckcraft.desktop,tde-kolourpaint.desktop,cangurul.desktop,furnica.desktop,org.thonny.Thonny.desktop,code.desktop,firefox-esr.desktop,${CHR_FAV}tde-Home.desktop
 
 [KMenu]
 CustomIcon=$RESURSE/start.png
@@ -742,7 +782,7 @@ LISTA
                /usr/share/applications/ai.storyteller.deckcraft.desktop /opt/trinity/share/applications/tde/kolourpaint.desktop \
                /usr/share/applications/cangurul.desktop /usr/share/applications/furnica.desktop \
                /usr/share/applications/org.thonny.Thonny.desktop /usr/share/applications/code.desktop \
-               /usr/share/applications/firefox-esr.desktop; do
+               /usr/share/applications/firefox-esr.desktop $CHR_DESK; do
         if [ -e "$app" ]; then install -m 755 "$app" "$S/Desktop/$(basename "$app")"; else avert "Lipsește $app"; fi
     done
     [ -n "$LUCRARI_DIR" ] && ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
@@ -1038,6 +1078,7 @@ main() {
     instaleaza_din_github
     instaleaza_libreoffice
     instaleaza_programare
+    instaleaza_chromium
     optimizeaza_memoria
     seteaza_tastatura
     instaleaza_teme

@@ -45,9 +45,9 @@ cat <<EOF
 Se vor anula setările pentru sala de informatică:
   • resetarea contului, intrarea automată, comanda cont-elev
   • $( [ "$PASTREAZA_ELEV" = "1" ] && echo "contul $ELEV_USER RĂMÂNE" || echo "contul $ELEV_USER și tot ce e în el se ȘTERG" )
-  • tema Windows 10, fundalul, setările zram/BFQ/Firefox
+  • tema Windows 10, fundalul, setările zram/BFQ/Firefox/Chromium
   • $( [ "$STERGE_LUCRARI" = "1" ] && echo "dosarul $LUCRARI_DIR se ȘTERGE" || echo "dosarul $LUCRARI_DIR RĂMÂNE" )
-Programele (WordCraft, GridCraft, DeckCraft, Firefox, Paint) și tastatura rămân.
+Programele (WordCraft, GridCraft, DeckCraft, Firefox, Chromium, Paint) și tastatura rămân.
 
 EOF
 if [ "$DA" != "1" ]; then
@@ -124,7 +124,7 @@ if [ -d "$LUCRARI_DIR" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-pas "Memorie, disc, Firefox"
+pas "Memorie, disc, Firefox, Chromium"
 sterge /etc/sysctl.d/90-sala-zram.conf /etc/modules-load.d/sala-bfq.conf /etc/udev/rules.d/60-sala-hdd-bfq.rules
 if [ -f /etc/antix-version ] && grep -x bfq /etc/modules >/dev/null 2>&1; then
     sed -i '/^bfq$/d' /etc/modules && ok "Scos bfq din /etc/modules"
@@ -137,6 +137,8 @@ for p in /etc/firefox/policies/policies.json /usr/lib/firefox-esr/distribution/p
         sterge "$p"
     fi
 done
+# Politica Chromium scrisă de scripturi (Chromium rămâne instalat).
+sterge /etc/chromium/policies/managed/sala.json /etc/chromium-browser/policies/managed/sala.json
 # Linux Mint: serviciile oprite de script pornesc din nou.
 if are_systemd && [ -f /etc/linuxmint/info ]; then
     for s in ModemManager.service cups-browsed.service; do

@@ -28,6 +28,7 @@ COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
 ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft pdfcraft}"   # programe ArtCraft (getartcraft.com/apps)
 THONNY="${THONNY:-1}"                    # 1 = Thonny (Python pentru începători)
 VSCODE="${VSCODE:-1}"                    # 1 = Visual Studio Code
+CHROMIUM="${CHROMIUM:-1}"                # 1 = și Chromium (al doilea browser)
 EXECUTANTI="${EXECUTANTI:-cangurul furnica}"   # executanți pentru algoritmi (github.com/nazdravan)
 LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"              # 1 = descarcă tema GTK și iconițele Windows 10
@@ -225,6 +226,36 @@ instaleaza_programare() {
         avert "Nu am putut instala Visual Studio Code"; PASI_ESUATI+=("Visual Studio Code")
     fi
     rm -rf "$tmp"
+}
+
+# =============================================================================
+# Chromium: al doilea browser (unele site-uri merg mai bine în el). Din depozitele
+# distribuției (Linux Mint și Debian au pachet .deb, nu snap), fără pachetele de limbă.
+# Politica: uBlock Origin Lite, fără procese în fundal după închidere, cache mic pe HDD.
+instaleaza_chromium() {
+    [ "$CHROMIUM" = "1" ] || return 0
+    pas "Chromium"
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    if ! apt-get "${apt_opt[@]}" install --no-install-recommends chromium; then
+        avert "Nu am putut instala Chromium"; PASI_ESUATI+=("Chromium"); return 0
+    fi
+    local d
+    for d in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed; do
+        install -d "$d"
+        cat > "$d/sala.json" <<'EOF'
+{
+  "ExtensionInstallForcelist": ["ddkjiahejlhfcafbddmgiahcphecmpfh;https://clients2.google.com/service/update2/crx"],
+  "BackgroundModeEnabled": false,
+  "MetricsReportingEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "PromotionalTabsEnabled": false,
+  "PasswordManagerEnabled": false,
+  "DiskCacheSize": 52428800,
+  "HighEfficiencyModeEnabled": true
+}
+EOF
+    done
+    ok "Chromium $(dpkg-query -W -f='${Version}' chromium 2>/dev/null | cut -d- -f1) (uBlock Origin Lite, setări pentru memorie puțină)"
 }
 
 # =============================================================================
@@ -567,12 +598,12 @@ construieste_sablon() {
     rm -rf "$S"; install -d -m 700 "$DATE_DIR"; install -d "$S"
     cp -a /etc/skel/. "$S"/
 
-    local I_WORD I_EXCEL I_PPT I_PDF I_PAINT I_THONNY I_CODE I_CANGUR I_FURNICA I_WEB I_FM I_TOATE
+    local I_WORD I_EXCEL I_PPT I_PDF I_PAINT I_THONNY I_CODE I_CANGUR I_FURNICA I_WEB I_CHR I_FM I_TOATE
     I_WORD="$(iconita ai.storyteller.wordcraft)"; I_EXCEL="$(iconita ai.storyteller.gridcraft)"
     I_PPT="$(iconita ai.storyteller.deckcraft)"; I_PAINT="$(iconita com.github.maoschanz.drawing)"
     I_PDF="$(iconita ai.storyteller.pdfcraft)"; I_THONNY="$(iconita thonny)"
     I_CODE="$(iconita vscode)"; I_CANGUR="$(iconita cangurul)"; I_FURNICA="$(iconita furnica)"
-    I_WEB="$(iconita firefox-esr)"; I_FM="$(iconita system-file-manager)"
+    I_WEB="$(iconita firefox-esr)"; I_CHR="$(iconita chromium)"; I_FM="$(iconita system-file-manager)"
     I_TOATE="$(iconita applications-all)"
 
     # --- IceWM -----------------------------------------------------------------
@@ -596,6 +627,7 @@ KeySysShowDesktop="Super+d"
 KeyWinClose="Alt+F4"
 ConfirmLogout=1
 ShowHelp=0
+LockCommand=""
 EOF
     scrie "$S/.icewm/toolbar" <<EOF
 prog "Fișiere" $I_FM desktop-defaults-run -fm
@@ -616,6 +648,7 @@ prog "Algoritmi — Furnica" $I_FURNICA furnica
 prog "Python — Thonny" $I_THONNY thonny
 prog "Programare — Visual Studio Code" $I_CODE code
 prog "Internet — Firefox" $I_WEB firefox-esr
+$([ -x /usr/bin/chromium ] && echo "prog \"Internet — Chromium\" $I_CHR chromium")
 prog "Fișiere" $I_FM desktop-defaults-run -fm
 separator
 menufile "Toate programele" $I_TOATE menu-applications
@@ -660,13 +693,14 @@ EOF
     # antiX dă lansatoarelor nume lungi în engleză; le punem nume scurte în română.
     local app nume
     while IFS='|' read -r app nume; do
+        [ -n "$app" ] || continue
         if [ -e "/usr/share/applications/$app.desktop" ]; then
             install -m 755 "/usr/share/applications/$app.desktop" "$S/Desktop/$app.desktop"
             sed -i -e '/^Name\[/d' -e '/^GenericName/d' -e "0,/^Name=.*/s//Name=$nume/" "$S/Desktop/$app.desktop"
         else
             avert "Lipsește $app.desktop"
         fi
-    done <<'LISTA'
+    done <<LISTA
 ai.storyteller.wordcraft|Documente (WordCraft)
 ai.storyteller.gridcraft|Tabele (GridCraft)
 ai.storyteller.deckcraft|Prezentări (DeckCraft)
@@ -676,6 +710,7 @@ furnica|Furnica
 org.thonny.Thonny|Python (Thonny)
 code|Visual Studio Code
 firefox-esr|Internet (Firefox)
+$([ -x /usr/bin/chromium ] && echo "chromium|Internet (Chromium)")
 LISTA
     [ -n "$LUCRARI_DIR" ] && ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
 
@@ -952,6 +987,7 @@ main() {
     instaleaza_din_github
     instaleaza_libreoffice
     instaleaza_programare
+    instaleaza_chromium
     optimizeaza_memoria
     seteaza_tastatura
     instaleaza_teme

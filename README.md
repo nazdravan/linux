@@ -21,11 +21,11 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | | |
 |---|---|
 | **Aspect Windows 10** | bara jos, meniu Start, ceas și dată în dreapta, „Arată desktopul" în colț, temă și iconițe Windows 10, fundal albastru, un singur spațiu de lucru |
-| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), PDFCraft (PDF), LibreOffice de rezervă, KolourPaint (în loc de Paint), Firefox; pentru algoritmi și programare **Cangurul**, **Furnica**, **Thonny** (Python) și **Visual Studio Code** |
+| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), PDFCraft (PDF), LibreOffice de rezervă, KolourPaint (în loc de Paint), Firefox și Chromium; pentru algoritmi și programare **Cangurul**, **Furnica**, **Thonny** (Python) și **Visual Studio Code** |
 | **Ca în Office** | WordCraft, GridCraft și DeckCraft au panglică ca Office și lucrează direct cu **.docx, .xlsx, .pptx**; se descarcă de pe GitHub (ultima versiune, verificată cu SHA256) |
 | **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată programele de birou), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
 | **Limbă și tastatură** | sistemul rămâne în limba aleasă la instalare (engleză); se adaugă tastatura Română (standard) lângă US, care rămâne implicită; comutare cu **Alt+Shift** |
-| **Contul „elev"** | fără drepturi de administrator, fără blocare de ecran, fără ferestre de bun-venit și actualizări; intră automat la pornire |
+| **Contul „elev"** | fără drepturi de administrator, ecranul nu se blochează niciodată (nici singur, nici cu Super+L sau din meniu), fără ferestre de bun-venit și actualizări; intră automat la pornire |
 | **Resetare** | la ieșirea din sesiune și la repornire, **Desktopul** revine la șablon (fișierele elevilor de pe el se șterg, scurtăturile revin) și se golește **Coșul de gunoi**. Restul contului (Documents, Downloads, Pictures, setările, Firefox…) rămâne neatins. Dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) nu se șterge niciodată |
 
 ## Instalare dintr-o comandă
@@ -89,6 +89,7 @@ sudo ELEV_PAROLA=1234 AUTOLOGIN=0 TASTATURI=us,ro,ru VARIANTE=,std, bash configu
 | `ARTCRAFT` | `wordcraft gridcraft deckcraft pdfcraft` | programele ArtCraft instalate (`""` = niciunul) |
 | `EXECUTANTI` | `cangurul furnica` | executanții [Cangurul](https://github.com/nazdravan/cangurul) și [Furnica](https://github.com/nazdravan/furnica) (`""` = niciunul) |
 | `THONNY` / `VSCODE` | `1` / `1` | Thonny și Visual Studio Code (`0` = nu se instalează) |
+| `CHROMIUM` | `1` | și Chromium, al doilea browser, cu uBlock Origin Lite (`0` = nu se instalează) |
 | `LIBREOFFICE` | `1` | instalează și LibreOffice, de rezervă (în meniu, la toate programele) |
 | `RESETARE` | `Desktop .local/share/Trash` | ce se reface la resetare: Desktopul și Coșul de gunoi; se pot adăuga și alte dosare, de ex. `"Desktop .local/share/Trash Downloads Documents"`; `tot` = tot contul, ca la un cont nou |
 | `TEMA_WIN10` | `1` | descarcă tema Windows 10 (altfel rămâne tema Mint, albastră) |
@@ -165,6 +166,7 @@ Alternativ, poți instala Mint pe fiecare calculator și rula scriptul pe fiecar
 | `/etc/default/earlyoom` | earlyoom |
 | `/etc/udev/rules.d/60-sala-hdd-bfq.rules` | BFQ pentru HDD |
 | `/etc/firefox/policies/policies.json` | setările Firefox |
+| `/etc/chromium/policies/managed/sala.json` | setările Chromium |
 | `/usr/share/themes/Windows-10`, `/usr/share/icons/Windows-10` | tema [B00merang Windows 10](https://github.com/B00merang-Project/Windows-10) (GPL-3.0) |
 
 ## Varianta antiX
@@ -183,7 +185,7 @@ Diferențe față de Mint:
 | Desktop | XFCE cu temă Windows 10 | IceWM cu tema **Scoala-Win10** generată de script (bară închisă jos, ferestre albe cu butoane _ □ ✕, meniu Start întunecat) + desktop zzzfm |
 | Meniul Start | Whisker Menu | meniu simplu: Documente, Tabele, Prezentări, Desen, Internet, Fișiere, *Toate programele* |
 | Paint | KolourPaint | **Drawing** (KolourPaint nu se poate instala pe antiX: are nevoie de systemd) |
-| Browser | Firefox | Firefox ESR |
+| Browser | Firefox, Chromium | Firefox ESR, Chromium |
 | Resetarea contului | LightDM + serviciu systemd | ecranul de logare **slimski** (`sessionstart_cmd` / `sessionstop_cmd`), la intrarea și la ieșirea elevului |
 | zram, earlyoom | servicii systemd | pornite de slimski înainte de logare (`/usr/local/sbin/sala-servicii`), deci merg cu orice init: runit, sysvinit, dinit, s6 |
 
@@ -210,7 +212,7 @@ Diferențe față de Mint:
 | Desktop | XFCE | Trinity: bară jos închisă la culoare (fundal generat), buton Start, programe fixate, ceas cu dată, „Arată desktopul" în dreapta; ferestre albe (Plastik) cu _ □ ✕ în dreapta |
 | Meniul Start | Whisker Menu | Kickoff: căutare sus, la *Favorite* Documente, Tabele, Prezentări, Desen, Internet, Fișiere |
 | Paint | KolourPaint | KolourPaint (versiunea Trinity) |
-| Browser | Firefox | Firefox ESR |
+| Browser | Firefox, Chromium | Firefox ESR, Chromium |
 | Asistentul Q4OS de la prima logare | — | dezactivat pentru elev |
 | Resetarea contului | LightDM | ecranul de logare **TDM**: `/etc/trinity/tdm/Xstartup` și `Xreset` + serviciul systemd de la pornire |
 

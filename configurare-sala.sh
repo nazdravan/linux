@@ -28,6 +28,7 @@ COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"   # Alt+Shift, 
 ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft pdfcraft}"   # programe ArtCraft (getartcraft.com/apps)
 THONNY="${THONNY:-1}"                    # 1 = Thonny (Python pentru începători)
 VSCODE="${VSCODE:-1}"                    # 1 = Visual Studio Code
+CHROMIUM="${CHROMIUM:-1}"                # 1 = și Chromium (al doilea browser)
 EXECUTANTI="${EXECUTANTI:-cangurul furnica}"   # executanți pentru algoritmi (github.com/nazdravan)
 LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"             # 1 = descarcă tema și iconițele Windows 10
@@ -232,6 +233,36 @@ instaleaza_programare() {
         avert "Nu am putut instala Visual Studio Code"; PASI_ESUATI+=("Visual Studio Code")
     fi
     rm -rf "$tmp"
+}
+
+# =============================================================================
+# Chromium: al doilea browser (unele site-uri merg mai bine în el). Din depozitele
+# distribuției (Linux Mint și Debian au pachet .deb, nu snap), fără pachetele de limbă.
+# Politica: uBlock Origin Lite, fără procese în fundal după închidere, cache mic pe HDD.
+instaleaza_chromium() {
+    [ "$CHROMIUM" = "1" ] || return 0
+    pas "Chromium"
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    if ! apt-get "${apt_opt[@]}" install --no-install-recommends chromium; then
+        avert "Nu am putut instala Chromium"; PASI_ESUATI+=("Chromium"); return 0
+    fi
+    local d
+    for d in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed; do
+        install -d "$d"
+        cat > "$d/sala.json" <<'EOF'
+{
+  "ExtensionInstallForcelist": ["ddkjiahejlhfcafbddmgiahcphecmpfh;https://clients2.google.com/service/update2/crx"],
+  "BackgroundModeEnabled": false,
+  "MetricsReportingEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "PromotionalTabsEnabled": false,
+  "PasswordManagerEnabled": false,
+  "DiskCacheSize": 52428800,
+  "HighEfficiencyModeEnabled": true
+}
+EOF
+    done
+    ok "Chromium $(dpkg-query -W -f='${Version}' chromium 2>/dev/null | cut -d- -f1) (uBlock Origin Lite, setări pentru memorie puțină)"
 }
 
 # =============================================================================
@@ -451,8 +482,10 @@ construieste_sablon() {
     cp -a /etc/skel/. "$S"/
 
     local X="$S/.config/xfce4/xfconf/xfce-perchannel-xml"
-    local FIREFOX THUNAR WORD EXCEL PPT PAINT THONNY VSCODE CANGUR FURNICA
+    local FIREFOX CHROMIUM_L THUNAR WORD EXCEL PPT PAINT THONNY VSCODE CANGUR FURNICA
     FIREFOX="$(gaseste_lansator firefox.desktop)"
+    CHROMIUM_L=""   # doar dacă e instalat
+    [ -f /usr/share/applications/chromium.desktop ] && CHROMIUM_L=chromium.desktop
     THUNAR="$(gaseste_lansator thunar.desktop Thunar.desktop)"
     WORD="$(gaseste_lansator ai.storyteller.wordcraft.desktop)"
     EXCEL="$(gaseste_lansator ai.storyteller.gridcraft.desktop)"
@@ -540,7 +573,7 @@ EOF
 
     # --- Meniul Start --------------------------------------------------------
     scrie "$S/.config/xfce4/panel/whiskermenu-1.rc" <<EOF
-favorites=$WORD,$EXCEL,$PPT,$PAINT,$CANGUR,$FURNICA,$THONNY,$VSCODE,$FIREFOX,$THUNAR
+favorites=$WORD,$EXCEL,$PPT,$PAINT,$CANGUR,$FURNICA,$THONNY,$VSCODE,$FIREFOX,${CHROMIUM_L:+$CHROMIUM_L,}$THUNAR
 button-icon=start-here
 button-single-row=false
 show-button-title=false
@@ -549,6 +582,8 @@ launcher-show-name=true
 launcher-show-description=false
 position-search-alternate=true
 position-commands-alternate=true
+show-command-lockscreen=false
+show-command-switchuser=false
 position-categories-alternate=false
 menu-width=520
 menu-height=560
@@ -595,6 +630,7 @@ EOF
 <channel name="xfce4-session" version="1.0">
   <property name="general" type="empty">
     <property name="SaveOnExit" type="bool" value="false"/>
+    <property name="LockCommand" type="string" value="true"/>
   </property>
   <property name="shutdown" type="empty">
     <property name="LockScreen" type="bool" value="false"/>
@@ -641,7 +677,7 @@ EOF
 
     # --- Scurtături pe Desktop -----------------------------------------------
     local app
-    for app in "$WORD" "$EXCEL" "$PPT" "$PAINT" "$CANGUR" "$FURNICA" "$THONNY" "$VSCODE" "$FIREFOX"; do
+    for app in "$WORD" "$EXCEL" "$PPT" "$PAINT" "$CANGUR" "$FURNICA" "$THONNY" "$VSCODE" "$FIREFOX" $CHROMIUM_L; do
         copiaza_lansator "$app" "$S/Desktop/$app" || avert "Lipsește $app"
     done
     if [ -n "$LUCRARI_DIR" ]; then
@@ -733,6 +769,15 @@ FUNDAL="$FUNDAL"
 EOF
     cat >> /usr/local/bin/sala-la-pornire <<'EOF'
 sleep 2
+# Ecranul nu se blochează niciodată în contul elev (setările rămân în cont la resetare,
+# deci le refacem la fiecare logare). xflock4 (Super+L, Ctrl+Alt+L) rulează LockCommand.
+pkill -u "$USER" -x light-locker 2>/dev/null
+pkill -u "$USER" -x xfce4-screensaver 2>/dev/null
+xfconf-query -c xfce4-session -p /general/LockCommand -n -t string -s true
+xfconf-query -c xfce4-session -p /shutdown/LockScreen -n -t bool -s false
+xfconf-query -c xfce4-screensaver -p /lock/enabled -n -t bool -s false
+xfconf-query -c xfce4-screensaver -p /saver/enabled -n -t bool -s false
+xfconf-query -c xfce4-power-manager -p /xfce4-power-manager/lock-screen-suspend-hibernate -n -t bool -s false
 DESKTOP_DIR="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")"
 for f in "$DESKTOP_DIR"/*.desktop; do
     [ -f "$f" ] || continue
@@ -984,6 +1029,7 @@ main() {
     instaleaza_din_github
     instaleaza_libreoffice
     instaleaza_programare
+    instaleaza_chromium
     optimizeaza_memoria
     seteaza_tastatura
     instaleaza_tema
