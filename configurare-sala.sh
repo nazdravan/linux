@@ -2,7 +2,7 @@
 # =============================================================================
 #  configurare-sala.sh — pregătește un calculator slab (2 GB RAM, HDD) din sala
 #  de informatică: Linux Mint XFCE cu aspect de Windows 10, optimizat pentru
-#  memorie puțină, în limba română, cu un cont „elev" care revine la starea
+#  memorie puțină, cu tastatură română, cu un cont „elev" care revine la starea
 #  inițială la fiecare repornire / ieșire din sesiune.
 #
 #  Testat pentru: Linux Mint 22.x și 23.x, ediția XFCE, 64 de biți.
@@ -24,7 +24,7 @@ LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge la resetar
 TASTATURI="${TASTATURI:-us,ro}"           # aranjamente tastatură (ex: "us,ro,ru")
 VARIANTE="${VARIANTE:-,std}"              # variante (std = română standard, cu ș ț corecte)
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"   # Alt+Shift, ca în Windows
-LIMBA="${LIMBA:-ro_RO.UTF-8}"             # limba sistemului
+ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft}"   # programe de birou (getartcraft.com/apps)
 TEMA_WIN10="${TEMA_WIN10:-1}"             # 1 = descarcă tema și iconițele Windows 10
 ACTUALIZARE="${ACTUALIZARE:-1}"           # 1 = instalează și actualizările sistemului
 # -----------------------------------------------------------------------------
@@ -75,16 +75,45 @@ verificari() {
     ok "Jurnalul complet se scrie în $LOG"
 }
 
+# Pachete rămase instalate pe jumătate (de ex. un driver NVIDIA vechi care nu se compilează pentru
+# nucleul nou) fac ca orice apt-get să eșueze. Încercăm să le terminăm; dacă nu se poate, explicăm.
+verifica_dpkg() {
+    dpkg --configure -a && return 0
+    local stricate nv
+    stricate="$(dpkg-query -W -f='${db:Status-Abbrev}|${Package}\n' 2>/dev/null \
+                | awk -F'|' 'substr($1,2,1) ~ /[UFHWt]/ {print $2}' | sort -u | tr '\n' ' ')"
+    eroare "Pachete instalate pe jumătate, care blochează apt: ${stricate:-necunoscute}"
+    nv="$(grep -o 'nvidia-dkms-[0-9]*' <<<"$stricate" | head -n1 || true)"
+    if [ -n "$nv" ]; then
+        nv="${nv##*-}"
+        eroare "Driverul NVIDIA $nv nu se poate compila pentru nucleul $(uname -r)."
+        eroare "Alege alt driver din „Manager de drivere\" sau, din terminal, fie un driver mai nou:"
+        eroare "    sudo apt-get install nvidia-driver-580"
+        eroare "fie renunță la driverul NVIDIA (rămâne placa video integrată / nouveau):"
+        eroare "    sudo apt-get purge 'nvidia.*-$nv\$' && sudo apt-get autoremove"
+    else
+        eroare "Repară-le întâi (sudo dpkg --configure -a; sudo apt-get -f install), apoi rulează din nou."
+    fi
+    eroare "Apoi pornește din nou acest script."
+    exit 1
+}
+
 # =============================================================================
 instaleaza_pachete() {
     pas "Instalez programele (poate dura 10-30 de minute pe HDD)"
     export DEBIAN_FRONTEND=noninteractive
     local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
 
+    verifica_dpkg
     apt-get update
     if [ "$ACTUALIZARE" = "1" ]; then
-        apt-get "${apt_opt[@]}" dist-upgrade
-        ok "Sistemul este actualizat"
+        if apt-get "${apt_opt[@]}" dist-upgrade; then
+            ok "Sistemul este actualizat"
+        else
+            verifica_dpkg
+            avert "Actualizarea sistemului nu a reușit complet; continui cu instalarea programelor."
+            PASI_ESUATI+=("actualizarea sistemului")
+        fi
     fi
 
     # Pachete obligatorii
@@ -92,7 +121,6 @@ instaleaza_pachete() {
         rsync unzip wget python3 x11-xserver-utils \
         zram-tools earlyoom \
         xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin xfce4-xkb-plugin \
-        libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-gtk3 \
         firefox
     ok "Pachete de bază"
 
@@ -100,20 +128,56 @@ instaleaza_pachete() {
     apt-get "${apt_opt[@]}" install --no-install-recommends kolourpaint
     ok "KolourPaint (în loc de Paint)"
 
-    # Pachete de limbă: le instalăm doar pe cele care există în această versiune de Mint.
-    local dorite=(language-pack-ro language-pack-gnome-ro language-pack-kde-ro
-                  libreoffice-l10n-ro libreoffice-help-ro hunspell-ro hyphen-ro mythes-ro
-                  firefox-locale-ro)
-    local existente=() p
-    for p in "${dorite[@]}"; do
-        if [[ "$(LC_ALL=C apt-cache policy "$p" 2>/dev/null)" == *"Candidate: "[!\(]* ]]; then
-            existente+=("$p")
+}
+
+# =============================================================================
+# WordCraft, GridCraft, DeckCraft (https://getartcraft.com/apps) în loc de Word, Excel,
+# PowerPoint. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
+# cu SHA256SUMS.txt al versiunii și îl instalăm cu apt (care aduce și dependențele).
+instaleaza_artcraft() {
+    pas "Programe de birou ArtCraft: ${ARTCRAFT:-niciunul}"
+    [ -n "$ARTCRAFT" ] || return 0
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    local tmp app tag ver deb baza instalat debs=()
+    tmp="$(mktemp -d)"; chmod 755 "$tmp"     # apt citește pachetele ca utilizatorul _apt
+    for app in $ARTCRAFT; do
+        # …/releases/latest trimite la …/releases/tag/vX.Y.Z (fără API GitHub, fără limită)
+        tag="$(wget -q -S --spider "https://github.com/storytold/$app/releases/latest" 2>&1 \
+               | sed -n 's|.*[Ll]ocation: .*/releases/tag/\([^ ]*\).*|\1|p' | tail -n1 | tr -d '\r' || true)"
+        if [ -z "$tag" ]; then
+            avert "Nu găsesc ultima versiune $app (fără internet?)"; PASI_ESUATI+=("$app"); continue
+        fi
+        ver="${tag#v}"
+        instalat="$(dpkg-query -W -f='${Version}' "$app" 2>/dev/null || true)"
+        if [[ "$instalat" == "$ver" || "$instalat" == "$ver"-* ]]; then
+            ok "$app $ver este deja instalat"; continue
+        fi
+        deb="$app-$ver-linux-x86_64.deb"
+        baza="https://github.com/storytold/$app/releases/download/$tag"
+        if wget -q -O "$tmp/$deb" "$baza/$deb" && wget -q -O "$tmp/SHA256SUMS-$app.txt" "$baza/SHA256SUMS.txt" \
+           && (cd "$tmp" && grep "  $deb\$" "SHA256SUMS-$app.txt" | sha256sum -c --status -); then
+            debs+=("$tmp/$deb")
+        else
+            avert "Nu am putut descărca sau verifica $deb"; PASI_ESUATI+=("$app")
         fi
     done
-    if [ "${#existente[@]}" -gt 0 ]; then
-        apt-get "${apt_opt[@]}" install --no-install-recommends "${existente[@]}"
+    if [ "${#debs[@]}" -gt 0 ]; then
+        # Bibliotecile pe care programele le deschid la pornire (X11, Vulkan/OpenGL) și zenity,
+        # pentru ferestrele Deschide/Salvează acolo unde nu există xdg-desktop-portal.
+        local extra=() p
+        for p in libx11-6 libx11-xcb1 libxkbcommon-x11-0 libxcursor1 libxi6 libxrandr2 \
+                 libegl1 libgl1-mesa-dri mesa-vulkan-drivers zenity; do
+            if [[ "$(LC_ALL=C apt-cache policy "$p" 2>/dev/null)" == *"Candidate: "[!\(]* ]]; then
+                extra+=("$p")
+            fi
+        done
+        if apt-get "${apt_opt[@]}" install --no-install-recommends "${debs[@]}" "${extra[@]}"; then
+            ok "Instalat: $(printf '%s ' "${debs[@]##*/}")"
+        else
+            avert "Nu am putut instala programele ArtCraft"; PASI_ESUATI+=("programele ArtCraft")
+        fi
     fi
-    ok "Limba română: ${existente[*]:-nimic de instalat}"
+    rm -rf "$tmp"
 }
 
 # =============================================================================
@@ -138,10 +202,11 @@ EOF
     fi
 
     # earlyoom: dacă memoria se termină, închide o filă de browser în loc să blocheze
-    # calculatorul minute întregi. Nu închide niciodată LibreOffice (lucrarea elevului).
+    # calculatorul minute întregi. Nu închide niciodată WordCraft, GridCraft, DeckCraft
+    # sau KolourPaint (lucrarea elevului).
     cat > /etc/default/earlyoom <<'EOF'
 # Configurat de configurare-sala.sh
-EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|lightdm|xfce4-session|xfwm4|xfce4-panel|xfdesktop|soffice.bin|kolourpaint)$'"
+EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|lightdm|xfce4-session|xfwm4|xfce4-panel|xfdesktop|wordcraft|gridcraft|deckcraft|kolourpaint)$'"
 EOF
     if are_systemd; then
         optional "earlyoom pornit" systemctl enable --now earlyoom.service
@@ -207,16 +272,10 @@ EOF
 }
 
 # =============================================================================
-seteaza_limba_tastatura() {
-    pas "Limba română și tastatura"
-    if ! locale -a 2>/dev/null | grep -i '^ro_RO\.utf-\?8$' >/dev/null; then
-        sed -i 's/^# *\(ro_RO.UTF-8 UTF-8\)/\1/' /etc/locale.gen 2>/dev/null || true
-        grep -q '^ro_RO.UTF-8 UTF-8' /etc/locale.gen 2>/dev/null || echo 'ro_RO.UTF-8 UTF-8' >> /etc/locale.gen
-        locale-gen >/dev/null
-    fi
-    update-locale LANG="$LIMBA" LANGUAGE="ro:en"
-    ok "Limba sistemului: $LIMBA"
-
+seteaza_tastatura() {
+    # Limba sistemului rămâne cea aleasă la instalare (engleza); adăugăm doar tastatura
+    # română. Prima din listă (us) este cea implicită.
+    pas "Tastatura: $TASTATURI"
     if [ -f /etc/default/keyboard ]; then
         sed -i \
             -e "s/^XKBLAYOUT=.*/XKBLAYOUT=\"$TASTATURI\"/" \
@@ -338,12 +397,12 @@ construieste_sablon() {
     cp -a /etc/skel/. "$S"/
 
     local X="$S/.config/xfce4/xfconf/xfce-perchannel-xml"
-    local FIREFOX THUNAR WRITER CALC IMPRESS PAINT
+    local FIREFOX THUNAR WORD EXCEL PPT PAINT
     FIREFOX="$(gaseste_lansator firefox.desktop)"
     THUNAR="$(gaseste_lansator thunar.desktop Thunar.desktop)"
-    WRITER="$(gaseste_lansator libreoffice-writer.desktop)"
-    CALC="$(gaseste_lansator libreoffice-calc.desktop)"
-    IMPRESS="$(gaseste_lansator libreoffice-impress.desktop)"
+    WORD="$(gaseste_lansator ai.storyteller.wordcraft.desktop)"
+    EXCEL="$(gaseste_lansator ai.storyteller.gridcraft.desktop)"
+    PPT="$(gaseste_lansator ai.storyteller.deckcraft.desktop)"
     PAINT="$(gaseste_lansator org.kde.kolourpaint.desktop kolourpaint.desktop)"
 
     # --- Bara de jos ca în Windows 10 ---------------------------------------
@@ -423,7 +482,7 @@ EOF
 
     # --- Meniul Start --------------------------------------------------------
     scrie "$S/.config/xfce4/panel/whiskermenu-1.rc" <<EOF
-favorites=$WRITER,$CALC,$IMPRESS,$PAINT,$FIREFOX,$THUNAR
+favorites=$WORD,$EXCEL,$PPT,$PAINT,$FIREFOX,$THUNAR
 button-icon=start-here
 button-single-row=false
 show-button-title=false
@@ -508,53 +567,27 @@ EOF
     # --- Dosare cu nume ca în Windows ----------------------------------------
     scrie "$S/.config/user-dirs.dirs" <<'EOF'
 XDG_DESKTOP_DIR="$HOME/Desktop"
-XDG_DOWNLOAD_DIR="$HOME/Descărcări"
-XDG_TEMPLATES_DIR="$HOME/Șabloane"
+XDG_DOWNLOAD_DIR="$HOME/Downloads"
+XDG_TEMPLATES_DIR="$HOME/Templates"
 XDG_PUBLICSHARE_DIR="$HOME/Public"
-XDG_DOCUMENTS_DIR="$HOME/Documente"
-XDG_MUSIC_DIR="$HOME/Muzică"
-XDG_PICTURES_DIR="$HOME/Imagini"
-XDG_VIDEOS_DIR="$HOME/Videoclipuri"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_MUSIC_DIR="$HOME/Music"
+XDG_PICTURES_DIR="$HOME/Pictures"
+XDG_VIDEOS_DIR="$HOME/Videos"
 EOF
-    echo "ro_RO" > "$S/.config/user-dirs.locale"
+    echo "en_US" > "$S/.config/user-dirs.locale"
     local d
-    for d in Desktop Descărcări Șabloane Public Documente Muzică Imagini Videoclipuri; do
+    for d in Desktop Downloads Templates Public Documents Music Pictures Videos; do
         install -d "$S/$d"
     done
 
     # --- Scurtături pe Desktop -----------------------------------------------
     local app
-    for app in "$WRITER" "$CALC" "$IMPRESS" "$PAINT" "$FIREFOX"; do
+    for app in "$WORD" "$EXCEL" "$PPT" "$PAINT" "$FIREFOX"; do
         copiaza_lansator "$app" "$S/Desktop/$app" || avert "Lipsește $app"
     done
     if [ -n "$LUCRARI_DIR" ]; then
         ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
-    fi
-
-    # --- LibreOffice: interfață cu file (ca Office) și salvare în .docx/.xlsx/.pptx
-    scrie "$S/.config/libreoffice/4/user/registrymodifications.xcu" <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.text.TextDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>MS Word 2007 XML</value></prop></item>
-<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.sheet.SpreadsheetDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Calc MS Excel 2007 XML</value></prop></item>
-<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.presentation.PresentationDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Impress MS PowerPoint 2007 XML</value></prop></item>
-<item oor:path="/org.openoffice.Office.Common/Save/Document"><prop oor:name="WarnAlienFormat" oor:op="fuse"><value>false</value></prop></item>
-<item oor:path="/org.openoffice.Office.Common/Misc"><prop oor:name="ShowTipOfTheDay" oor:op="fuse"><value>false</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Writer']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Calc']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Impress']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Writer']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Calc']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Impress']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-</oor:items>
-EOF
-
-    # Fără fereastra „Bun venit" / „Ce e nou" (altfel apare după fiecare resetare).
-    local lo_ver_scurt
-    lo_ver_scurt="$(dpkg-query -W -f='${Version}' libreoffice-core 2>/dev/null | sed -E 's/^[0-9]+://; s/^([0-9]+\.[0-9]+).*/\1/')"
-    if [ -n "$lo_ver_scurt" ]; then
-        sed -i "s|</oor:items>|<item oor:path=\"/org.openoffice.Setup/Product\"><prop oor:name=\"ooSetupLastVersion\" oor:op=\"fuse\"><value>$lo_ver_scurt</value></prop></item>\n<item oor:path=\"/org.openoffice.Office.Common/Misc\"><prop oor:name=\"FirstRun\" oor:op=\"fuse\"><value>false</value></prop></item>\n</oor:items>|" \
-            "$S/.config/libreoffice/4/user/registrymodifications.xcu"
     fi
 
     # --- Programe care pornesc singure: fără ecran de bun-venit, fără actualizări,
@@ -762,11 +795,10 @@ creeaza_cont_elev() {
     done
     ok "Fără drepturi de administrator, parola: $ELEV_PAROLA"
 
-    # Limba la logare (LightDM o citește de aici).
+    # Sesiunea la logare (LightDM o citește de aici); limba rămâne cea a sistemului.
     install -d /var/lib/AccountsService/users
     cat > "/var/lib/AccountsService/users/$ELEV_USER" <<EOF
 [User]
-Language=$LIMBA
 XSession=xfce
 SystemAccount=false
 EOF
@@ -828,8 +860,9 @@ main() {
     echo "===== configurare-sala.sh — $(date '+%Y-%m-%d %H:%M') ====="
     verificari
     instaleaza_pachete
+    instaleaza_artcraft
     optimizeaza_memoria
-    seteaza_limba_tastatura
+    seteaza_tastatura
     instaleaza_tema
     instaleaza_scripturi
     construieste_sablon

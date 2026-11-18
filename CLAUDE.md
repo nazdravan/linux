@@ -4,6 +4,10 @@ Proiect: configurarea calculatoarelor slabe (2 GB RAM, HDD, 64 biți) din sala d
 informatică a școlii: Linux Mint XFCE cu aspect de Windows 10, cont comun „elev" care se
 resetează. Utilizatorul (profesor de informatică) scrie în română — răspunde în română.
 
+- Decizii: programele de birou sunt ArtCraft (WordCraft/GridCraft/DeckCraft, `.deb` din
+  `github.com/storytold/<app>/releases/latest`, verificat cu `SHA256SUMS.txt`) — **nu** LibreOffice.
+  Limba sistemului rămâne engleza (nu se instalează pachete de limbă română, nu se schimbă locale);
+  se adaugă doar tastatura română, cu `us` implicit (`TASTATURI=us,ro`).
 - `configurare-sala.sh` — un singur script bash, autonom (se copiază pe stick); toate
   fișierele de configurare sunt generate din el prin heredoc. Ținta: Linux Mint 22.x/23.x XFCE.
 - `configurare-antix.sh` — aceeași idee pentru antiX 26.x full x64 (IceWM + zzzfm, slimski, fără

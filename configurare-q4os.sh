@@ -2,7 +2,7 @@
 # =============================================================================
 #  configurare-q4os.sh — pregătește un calculator slab (2 GB RAM, HDD) din sala
 #  de informatică pe Q4OS 6.x Trinity (64 biți): aspect apropiat de Windows 10,
-#  optimizat pentru memorie puțină, în limba română, cu un cont „elev" care
+#  optimizat pentru memorie puțină, cu tastatură română, cu un cont „elev" care
 #  revine la starea inițială la fiecare intrare / ieșire / repornire.
 #
 #  Folosire (ca administrator, cu internet):
@@ -21,7 +21,7 @@ LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge ("" = făr
 TASTATURI="${TASTATURI:-us,ro}"
 VARIANTE="${VARIANTE:-,std}"
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
-LIMBA="${LIMBA:-ro_RO.UTF-8}"
+ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft}"   # programe de birou (getartcraft.com/apps)
 TEMA_WIN10="${TEMA_WIN10:-1}"              # 1 = descarcă tema GTK și iconițele Windows 10
 ACTUALIZARE="${ACTUALIZARE:-1}"            # 1 = instalează și actualizările sistemului
 # -----------------------------------------------------------------------------
@@ -77,35 +77,102 @@ verificari() {
     ok "Jurnalul complet se scrie în $LOG"
 }
 
+# Pachete rămase instalate pe jumătate (de ex. un driver NVIDIA vechi care nu se compilează pentru
+# nucleul nou) fac ca orice apt-get să eșueze. Încercăm să le terminăm; dacă nu se poate, explicăm.
+verifica_dpkg() {
+    dpkg --configure -a && return 0
+    local stricate nv
+    stricate="$(dpkg-query -W -f='${db:Status-Abbrev}|${Package}\n' 2>/dev/null \
+                | awk -F'|' 'substr($1,2,1) ~ /[UFHWt]/ {print $2}' | sort -u | tr '\n' ' ')"
+    eroare "Pachete instalate pe jumătate, care blochează apt: ${stricate:-necunoscute}"
+    nv="$(grep -o 'nvidia-dkms-[0-9]*' <<<"$stricate" | head -n1 || true)"
+    if [ -n "$nv" ]; then
+        nv="${nv##*-}"
+        eroare "Driverul NVIDIA $nv nu se poate compila pentru nucleul $(uname -r)."
+        eroare "Alege alt driver din „Manager de drivere\" sau, din terminal, fie un driver mai nou:"
+        eroare "    sudo apt-get install nvidia-driver-580"
+        eroare "fie renunță la driverul NVIDIA (rămâne placa video integrată / nouveau):"
+        eroare "    sudo apt-get purge 'nvidia.*-$nv\$' && sudo apt-get autoremove"
+    else
+        eroare "Repară-le întâi (sudo dpkg --configure -a; sudo apt-get -f install), apoi rulează din nou."
+    fi
+    eroare "Apoi pornește din nou acest script."
+    exit 1
+}
+
 # =============================================================================
 instaleaza_pachete() {
     pas "Instalez programele (poate dura 10-30 de minute pe HDD)"
     export DEBIAN_FRONTEND=noninteractive
     local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
 
+    verifica_dpkg
     apt-get update
     if [ "$ACTUALIZARE" = "1" ]; then
-        apt-get "${apt_opt[@]}" dist-upgrade
-        ok "Sistemul este actualizat"
+        if apt-get "${apt_opt[@]}" dist-upgrade; then
+            ok "Sistemul este actualizat"
+        else
+            verifica_dpkg
+            avert "Actualizarea sistemului nu a reușit complet; continui cu instalarea programelor."
+            PASI_ESUATI+=("actualizarea sistemului")
+        fi
     fi
 
     apt-get "${apt_opt[@]}" install --no-install-recommends \
         rsync unzip wget python3 zram-tools earlyoom \
-        libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-gtk3 \
         firefox-esr kolourpaint-trinity
-    ok "LibreOffice, Firefox, KolourPaint (în loc de Paint), zram, earlyoom"
+    ok "Firefox, KolourPaint (în loc de Paint), zram, earlyoom"
 
-    local dorite=(tde-i18n-ro-trinity libreoffice-l10n-ro hunspell-ro hyphen-ro mythes-ro firefox-esr-l10n-ro)
-    local existente=() p
-    for p in "${dorite[@]}"; do
-        if [[ "$(LC_ALL=C apt-cache policy "$p" 2>/dev/null)" == *"Candidate: "[!\(]* ]]; then
-            existente+=("$p")
+}
+
+# =============================================================================
+# WordCraft, GridCraft, DeckCraft (https://getartcraft.com/apps) în loc de Word, Excel,
+# PowerPoint. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
+# cu SHA256SUMS.txt al versiunii și îl instalăm cu apt (care aduce și dependențele).
+instaleaza_artcraft() {
+    pas "Programe de birou ArtCraft: ${ARTCRAFT:-niciunul}"
+    [ -n "$ARTCRAFT" ] || return 0
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    local tmp app tag ver deb baza instalat debs=()
+    tmp="$(mktemp -d)"; chmod 755 "$tmp"     # apt citește pachetele ca utilizatorul _apt
+    for app in $ARTCRAFT; do
+        # …/releases/latest trimite la …/releases/tag/vX.Y.Z (fără API GitHub, fără limită)
+        tag="$(wget -q -S --spider "https://github.com/storytold/$app/releases/latest" 2>&1 \
+               | sed -n 's|.*[Ll]ocation: .*/releases/tag/\([^ ]*\).*|\1|p' | tail -n1 | tr -d '\r' || true)"
+        if [ -z "$tag" ]; then
+            avert "Nu găsesc ultima versiune $app (fără internet?)"; PASI_ESUATI+=("$app"); continue
+        fi
+        ver="${tag#v}"
+        instalat="$(dpkg-query -W -f='${Version}' "$app" 2>/dev/null || true)"
+        if [[ "$instalat" == "$ver" || "$instalat" == "$ver"-* ]]; then
+            ok "$app $ver este deja instalat"; continue
+        fi
+        deb="$app-$ver-linux-x86_64.deb"
+        baza="https://github.com/storytold/$app/releases/download/$tag"
+        if wget -q -O "$tmp/$deb" "$baza/$deb" && wget -q -O "$tmp/SHA256SUMS-$app.txt" "$baza/SHA256SUMS.txt" \
+           && (cd "$tmp" && grep "  $deb\$" "SHA256SUMS-$app.txt" | sha256sum -c --status -); then
+            debs+=("$tmp/$deb")
+        else
+            avert "Nu am putut descărca sau verifica $deb"; PASI_ESUATI+=("$app")
         fi
     done
-    if [ "${#existente[@]}" -gt 0 ]; then
-        apt-get "${apt_opt[@]}" install --no-install-recommends "${existente[@]}"
+    if [ "${#debs[@]}" -gt 0 ]; then
+        # Bibliotecile pe care programele le deschid la pornire (X11, Vulkan/OpenGL) și zenity,
+        # pentru ferestrele Deschide/Salvează acolo unde nu există xdg-desktop-portal.
+        local extra=() p
+        for p in libx11-6 libx11-xcb1 libxkbcommon-x11-0 libxcursor1 libxi6 libxrandr2 \
+                 libegl1 libgl1-mesa-dri mesa-vulkan-drivers zenity; do
+            if [[ "$(LC_ALL=C apt-cache policy "$p" 2>/dev/null)" == *"Candidate: "[!\(]* ]]; then
+                extra+=("$p")
+            fi
+        done
+        if apt-get "${apt_opt[@]}" install --no-install-recommends "${debs[@]}" "${extra[@]}"; then
+            ok "Instalat: $(printf '%s ' "${debs[@]##*/}")"
+        else
+            avert "Nu am putut instala programele ArtCraft"; PASI_ESUATI+=("programele ArtCraft")
+        fi
     fi
-    ok "Limba română: ${existente[*]:-nimic de instalat}"
+    rm -rf "$tmp"
 }
 
 # =============================================================================
@@ -128,8 +195,8 @@ EOF
 
     cat > /etc/default/earlyoom <<'EOF'
 # Configurat de configurare-q4os.sh. Închide o filă de browser când se termină
-# memoria; nu închide niciodată LibreOffice sau KolourPaint (lucrarea elevului).
-EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|tdm|twin|kicker|kdesktop|tdeinit|soffice.bin|kolourpaint)$'"
+# memoria; nu închide niciodată WordCraft, GridCraft, DeckCraft sau KolourPaint (lucrarea elevului).
+EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|tdm|twin|kicker|kdesktop|tdeinit|wordcraft|gridcraft|deckcraft|kolourpaint)$'"
 EOF
     if are_systemd; then
         optional "earlyoom pornit" systemctl enable --now earlyoom.service
@@ -175,16 +242,10 @@ EOF
 }
 
 # =============================================================================
-seteaza_limba_tastatura() {
-    pas "Limba română și tastatura"
-    if ! locale -a 2>/dev/null | grep -i '^ro_RO\.utf-\?8$' >/dev/null; then
-        sed -i 's/^# *\(ro_RO.UTF-8 UTF-8\)/\1/' /etc/locale.gen
-        grep '^ro_RO.UTF-8 UTF-8' /etc/locale.gen >/dev/null || echo 'ro_RO.UTF-8 UTF-8' >> /etc/locale.gen
-        locale-gen >/dev/null
-    fi
-    update-locale LANG="$LIMBA" LANGUAGE="ro:en"
-    ok "Limba sistemului: $LIMBA"
-
+seteaza_tastatura() {
+    # Limba sistemului rămâne cea aleasă la instalare (engleza); adăugăm doar tastatura
+    # română. Prima din listă (us) este cea implicită.
+    pas "Tastatura: $TASTATURI"
     sed -i \
         -e "s/^XKBLAYOUT=.*/XKBLAYOUT=\"$TASTATURI\"/" \
         -e "s/^XKBVARIANT=.*/XKBVARIANT=\"$VARIANTE\"/" \
@@ -211,7 +272,7 @@ instaleaza_teme() {
     if [ "$TEMA_WIN10" = "1" ]; then
         if descarca_tema https://github.com/B00merang-Project/Windows-10/archive/refs/heads/master.zip \
                          /usr/share/themes/Windows-10; then
-            TEMA_GTK="Windows-10"; ok "Tema GTK Windows 10 (Firefox, LibreOffice)"
+            TEMA_GTK="Windows-10"; ok "Tema GTK Windows 10 (Firefox)"
         else
             avert "Nu am putut descărca tema GTK Windows 10"; PASI_ESUATI+=("tema GTK")
         fi
@@ -331,7 +392,7 @@ Theme=$TEMA_ICONITE
 Size=32
 
 [Locale]
-Language=ro
+Language=en_US
 Country=md
 
 [KDE]
@@ -393,7 +454,7 @@ Applets2=KMenuButton_1,ServiceButton_1,ServiceButton_2,ServiceButton_3,ServiceBu
 [menus]
 MenuEntryFormat=NameOnly
 FirstRun=true
-Favorites=libreoffice-writer.desktop,libreoffice-calc.desktop,libreoffice-impress.desktop,tde-kolourpaint.desktop,firefox-esr.desktop,tde-Home.desktop
+Favorites=ai.storyteller.wordcraft.desktop,ai.storyteller.gridcraft.desktop,ai.storyteller.deckcraft.desktop,tde-kolourpaint.desktop,firefox-esr.desktop,tde-Home.desktop
 
 [KMenu]
 CustomIcon=$RESURSE/start.png
@@ -418,18 +479,18 @@ StorageId[\$e]=firefox-esr.desktop
 FreeSpace2=0
 
 [ServiceButton_3]
-DesktopFile[\$e]=/usr/share/applications/libreoffice-writer.desktop
-StorageId[\$e]=libreoffice-writer.desktop
+DesktopFile[\$e]=/usr/share/applications/ai.storyteller.wordcraft.desktop
+StorageId[\$e]=ai.storyteller.wordcraft.desktop
 FreeSpace2=0
 
 [ServiceButton_4]
-DesktopFile[\$e]=/usr/share/applications/libreoffice-calc.desktop
-StorageId[\$e]=libreoffice-calc.desktop
+DesktopFile[\$e]=/usr/share/applications/ai.storyteller.gridcraft.desktop
+StorageId[\$e]=ai.storyteller.gridcraft.desktop
 FreeSpace2=0
 
 [ServiceButton_5]
-DesktopFile[\$e]=/usr/share/applications/libreoffice-impress.desktop
-StorageId[\$e]=libreoffice-impress.desktop
+DesktopFile[\$e]=/usr/share/applications/ai.storyteller.deckcraft.desktop
+StorageId[\$e]=ai.storyteller.deckcraft.desktop
 FreeSpace2=0
 
 [ServiceButton_6]
@@ -558,16 +619,16 @@ EOF
     for cfg in .config .configtde; do
         scrie "$S/$cfg/user-dirs.dirs" <<'EOF'
 XDG_DESKTOP_DIR="$HOME/Desktop"
-XDG_DOWNLOAD_DIR="$HOME/Descărcări"
-XDG_TEMPLATES_DIR="$HOME/Șabloane"
+XDG_DOWNLOAD_DIR="$HOME/Downloads"
+XDG_TEMPLATES_DIR="$HOME/Templates"
 XDG_PUBLICSHARE_DIR="$HOME/Public"
-XDG_DOCUMENTS_DIR="$HOME/Documente"
-XDG_MUSIC_DIR="$HOME/Muzică"
-XDG_PICTURES_DIR="$HOME/Imagini"
-XDG_VIDEOS_DIR="$HOME/Videoclipuri"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_MUSIC_DIR="$HOME/Music"
+XDG_PICTURES_DIR="$HOME/Pictures"
+XDG_VIDEOS_DIR="$HOME/Videos"
 EOF
-        echo "ro_RO" > "$S/$cfg/user-dirs.locale"
-        # Temă GTK pentru Firefox și LibreOffice
+        echo "en_US" > "$S/$cfg/user-dirs.locale"
+        # Temă GTK pentru Firefox
         scrie "$S/$cfg/gtk-3.0/settings.ini" <<EOF
 [Settings]
 gtk-theme-name=$TEMA_GTK
@@ -575,7 +636,7 @@ gtk-icon-theme-name=$TEMA_ICONITE
 gtk-font-name=DejaVu Sans 9
 EOF
     done
-    for d in Desktop Descărcări Șabloane Public Documente Muzică Imagini Videoclipuri; do install -d "$S/$d"; done
+    for d in Desktop Downloads Templates Public Documents Music Pictures Videos; do install -d "$S/$d"; done
 
     # --- Scurtături pe Desktop ----------------------------------------------
     scrie "$S/Desktop/Acest PC.desktop" <<'EOF'
@@ -603,9 +664,9 @@ EOF
             break
         done
     done <<'LISTA'
-libreoffice-writer.desktop|Documente
-libreoffice-calc.desktop|Tabele
-libreoffice-impress.desktop|Prezentări
+ai.storyteller.wordcraft.desktop|Documente
+ai.storyteller.gridcraft.desktop|Tabele
+ai.storyteller.deckcraft.desktop|Prezentări
 kolourpaint.desktop|Desen
 firefox-esr.desktop|Internet
 LISTA
@@ -623,38 +684,12 @@ LISTA
         printf '[Desktop Entry]\nHidden=true\n' | scrie "$S/.trinity/share/apps/kdesktop/Desktop/$(basename "$f")"
     done
     local app f
-    for app in /usr/share/applications/libreoffice-writer.desktop /usr/share/applications/libreoffice-calc.desktop \
-               /usr/share/applications/libreoffice-impress.desktop /opt/trinity/share/applications/tde/kolourpaint.desktop \
+    for app in /usr/share/applications/ai.storyteller.wordcraft.desktop /usr/share/applications/ai.storyteller.gridcraft.desktop \
+               /usr/share/applications/ai.storyteller.deckcraft.desktop /opt/trinity/share/applications/tde/kolourpaint.desktop \
                /usr/share/applications/firefox-esr.desktop; do
         if [ -e "$app" ]; then install -m 755 "$app" "$S/Desktop/$(basename "$app")"; else avert "Lipsește $app"; fi
     done
     [ -n "$LUCRARI_DIR" ] && ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
-
-    # --- LibreOffice: interfață cu file și salvare în formatele Office -------
-    # (Q4OS mută XDG_CONFIG_HOME în ~/.configtde, deci punem configurarea în ambele locuri.)
-    local XCU="$S/.configtde/libreoffice/4/user/registrymodifications.xcu"
-    scrie "$XCU" <<'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.text.TextDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>MS Word 2007 XML</value></prop></item>
-<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.sheet.SpreadsheetDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Calc MS Excel 2007 XML</value></prop></item>
-<item oor:path="/org.openoffice.Setup/Office/Factories/org.openoffice.Setup:Factory['com.sun.star.presentation.PresentationDocument']"><prop oor:name="ooSetupFactoryDefaultFilter" oor:op="fuse"><value>Impress MS PowerPoint 2007 XML</value></prop></item>
-<item oor:path="/org.openoffice.Office.Common/Save/Document"><prop oor:name="WarnAlienFormat" oor:op="fuse"><value>false</value></prop></item>
-<item oor:path="/org.openoffice.Office.Common/Misc"><prop oor:name="ShowTipOfTheDay" oor:op="fuse"><value>false</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Writer']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Calc']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.ToolbarMode/Applications/org.openoffice.Office.UI.ToolbarMode:Application['Impress']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Writer']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Calc']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-<item oor:path="/org.openoffice.Office.UI.Notebookbar/Applications/org.openoffice.Office.UI.Notebookbar:Application['Impress']"><prop oor:name="Active" oor:op="fuse"><value>notebookbar.ui</value></prop></item>
-</oor:items>
-EOF
-    local lo_ver_scurt
-    lo_ver_scurt="$(dpkg-query -W -f='${Version}' libreoffice-core 2>/dev/null | sed -E 's/^[0-9]+://; s/^([0-9]+\.[0-9]+).*/\1/')"
-    if [ -n "$lo_ver_scurt" ]; then
-        sed -i "s|</oor:items>|<item oor:path=\"/org.openoffice.Setup/Product\"><prop oor:name=\"ooSetupLastVersion\" oor:op=\"fuse\"><value>$lo_ver_scurt</value></prop></item>\n<item oor:path=\"/org.openoffice.Office.Common/Misc\"><prop oor:name=\"FirstRun\" oor:op=\"fuse\"><value>false</value></prop></item>\n</oor:items>|" "$XCU"
-    fi
-    install -D -m 644 "$XCU" "$S/.config/libreoffice/4/user/registrymodifications.xcu"
 
     if [ -d "$SABLON" ]; then
         rm -rf "$DATE_DIR/sablon.anterior"; mv "$SABLON" "$DATE_DIR/sablon.anterior"
@@ -881,8 +916,9 @@ main() {
     echo "===== configurare-q4os.sh — $(date '+%Y-%m-%d %H:%M') ====="
     verificari
     instaleaza_pachete
+    instaleaza_artcraft
     optimizeaza_memoria
-    seteaza_limba_tastatura
+    seteaza_tastatura
     instaleaza_teme
     instaleaza_scripturi
     construieste_sablon

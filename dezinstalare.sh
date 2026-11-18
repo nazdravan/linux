@@ -6,7 +6,7 @@
 #
 #    sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/dezinstalare.sh)"
 #
-#  Rămân instalate programele (LibreOffice, Firefox, KolourPaint…), limba și
+#  Rămân instalate programele (WordCraft, GridCraft, DeckCraft, Firefox, KolourPaint…) și
 #  tastatura. Dosarul cu lucrări (/srv/lucrari) rămâne, ca să nu se piardă
 #  munca elevilor.
 #
@@ -47,7 +47,7 @@ Se vor anula setările pentru sala de informatică:
   • $( [ "$PASTREAZA_ELEV" = "1" ] && echo "contul $ELEV_USER RĂMÂNE" || echo "contul $ELEV_USER și tot ce e în el se ȘTERG" )
   • tema Windows 10, fundalul, setările zram/BFQ/Firefox
   • $( [ "$STERGE_LUCRARI" = "1" ] && echo "dosarul $LUCRARI_DIR se ȘTERGE" || echo "dosarul $LUCRARI_DIR RĂMÂNE" )
-Programele (LibreOffice, Firefox, Paint), limba și tastatura rămân.
+Programele (WordCraft, GridCraft, DeckCraft, Firefox, Paint) și tastatura rămân.
 
 EOF
 if [ "$DA" != "1" ]; then

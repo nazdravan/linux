@@ -2,7 +2,7 @@
 
 Scripturi care transformă un calculator slab (2 GB RAM, HDD, 64 de biți) într-un
 calculator de clasă: **Linux cu aspect de Windows 10**, optimizat pentru memorie
-puțină, în limba română, cu un cont comun **„elev"** care revine singur la starea
+puțină, cu tastatură română, cu un cont comun **„elev"** care revine singur la starea
 inițială.
 
 Sunt trei variante, câte una pentru fiecare sistem:
@@ -21,10 +21,10 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | | |
 |---|---|
 | **Aspect Windows 10** | bara jos, meniu Start, ceas și dată în dreapta, „Arată desktopul" în colț, temă și iconițe Windows 10, fundal albastru, un singur spațiu de lucru |
-| **Programe** | LibreOffice Writer / Calc / Impress (în loc de Word / Excel / PowerPoint), KolourPaint (în loc de Paint), Firefox |
-| **Ca în Office** | LibreOffice cu interfață cu file (ca panglica din Office); salvează implicit în **.docx, .xlsx, .pptx**, fără întrebări |
-| **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată LibreOffice), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
-| **Română** | limba sistemului și a programelor, tastatură US + Română (standard), comutare cu **Alt+Shift** |
+| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), KolourPaint (în loc de Paint), Firefox |
+| **Ca în Office** | WordCraft, GridCraft și DeckCraft au panglică ca Office și lucrează direct cu **.docx, .xlsx, .pptx**; se descarcă de pe GitHub (ultima versiune, verificată cu SHA256) |
+| **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată programele de birou), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
+| **Limbă și tastatură** | sistemul rămâne în limba aleasă la instalare (engleză); se adaugă tastatura Română (standard) lângă US, care rămâne implicită; comutare cu **Alt+Shift** |
 | **Contul „elev"** | fără drepturi de administrator, fără blocare de ecran, fără ferestre de bun-venit și actualizări; intră automat la pornire |
 | **Resetare** | tot ce schimbă elevii se șterge la ieșirea din sesiune și la repornire. Excepție: dosarul **„Lucrări (nu se șterg)"** de pe Desktop (`/srv/lucrari`) |
 
@@ -42,7 +42,7 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/mai
 Setările (vezi tabelul de mai jos) se pun după `sudo`, de exemplu
 `sudo AUTOLOGIN=0 bash -c "$(curl -fsSL …/instalare.sh)"`.
 
-Dezinstalare (întreabă înainte; programele, limba și dosarul cu lucrări rămân):
+Dezinstalare (întreabă înainte; programele și dosarul cu lucrări rămân):
 
 ```bash
 sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/nazdravan/linux/main/dezinstalare.sh)"
@@ -58,7 +58,7 @@ Cu `PASTREAZA_ELEV=1` contul elev rămâne, cu `STERGE_LUCRARI=1` se șterge și
 1. Descarcă **Linux Mint XFCE** (64 de biți) de pe <https://linuxmint.com/download.php>.
 2. Scrie-l pe un stick cu [Rufus](https://rufus.ie) sau [balenaEtcher](https://etcher.balena.io).
 3. Instalează pe primul calculator. La instalare:
-   - limba: **Română**;
+   - limba: **English** (scriptul nu instalează limba română, doar tastatura);
    - creează contul **profesorului** (cu parolă pe care elevii nu o știu) — acesta e
      contul de administrator;
    - bifează instalarea codecurilor multimedia.
@@ -85,13 +85,14 @@ sudo ELEV_PAROLA=1234 AUTOLOGIN=0 TASTATURI=us,ro,ru VARIANTE=,std, bash configu
 | `ELEV_USER` / `ELEV_PAROLA` | `elev` / `elev` | contul elevilor |
 | `AUTOLOGIN` | `1` | la pornire intră direct în contul elev |
 | `LUCRARI_DIR` | `/srv/lucrari` | dosarul care nu se șterge (`""` = fără) |
-| `TASTATURI` / `VARIANTE` | `us,ro` / `,std` | aranjamentele tastaturii |
+| `TASTATURI` / `VARIANTE` | `us,ro` / `,std` | aranjamentele tastaturii (primul e implicit) |
+| `ARTCRAFT` | `wordcraft gridcraft deckcraft` | programele ArtCraft instalate (`""` = niciunul) |
 | `TEMA_WIN10` | `1` | descarcă tema Windows 10 (altfel rămâne tema Mint, albastră) |
 | `ACTUALIZARE` | `1` | instalează și actualizările sistemului |
 
 ### 3. Verifică pe primul calculator
 
-Pornește, intră ca elev și verifică: meniul Start, programele de pe Desktop, Word →
+Pornește, intră ca elev și verifică: meniul Start, programele de pe Desktop, WordCraft →
 salvează un fișier (trebuie să propună `.docx`), tastatura (Alt+Shift), sunetul,
 internetul. Ieși din sesiune și intră din nou — schimbările trebuie să fi dispărut.
 
@@ -136,9 +137,10 @@ Alternativ, poți instala Mint pe fiecare calculator și rula scriptul pe fiecar
   pe 2 GB.
 - **Actualizările** le face profesorul, din contul lui (Manager de actualizări), de
   exemplu o dată pe lună. Pe calculatoarele clonate, din fiecare calculator.
-- **Interfața cu file în LibreOffice** se setează automat; dacă într-o versiune nouă nu
-  apare, alege *Vizualizare → Interfață utilizator → Cu file* în contul elevului și
-  salvează șablonul (pasul 4).
+- **Programele ArtCraft** nu sunt în depozitele Mint/Debian, deci *Managerul de
+  actualizări* nu le actualizează. Rulează din nou scriptul: descarcă doar versiunile noi.
+  Ele desenează cu placa video (Vulkan, altfel OpenGL); pe plăci foarte vechi verifică
+  întâi pe un calculator că pornesc.
 - **Jurnalul** instalării: `/var/log/configurare-sala.log`.
 
 ## Ce se instalează unde
@@ -177,8 +179,8 @@ Diferențe față de Mint:
 | Resetarea contului | LightDM + serviciu systemd | ecranul de logare **slimski** (`sessionstart_cmd` / `sessionstop_cmd`), la intrarea și la ieșirea elevului |
 | zram, earlyoom | servicii systemd | pornite de slimski înainte de logare (`/usr/local/sbin/sala-servicii`), deci merg cu orice init: runit, sysvinit, dinit, s6 |
 
-Comanda `sudo cont-elev …`, dosarul „Lucrări (nu se șterg)", LibreOffice cu file și
-formatele .docx/.xlsx/.pptx, limba română și Alt+Shift sunt la fel.
+Comanda `sudo cont-elev …`, dosarul „Lucrări (nu se șterg)", WordCraft/GridCraft/DeckCraft,
+tastatura română și Alt+Shift sunt la fel.
 
 Setările originale ale ecranului de logare sunt păstrate în
 `/etc/slimski.local.conf.inainte-de-sala`. Profesorul intră în contul lui scriind numele
@@ -205,8 +207,8 @@ Diferențe față de Mint:
 | Resetarea contului | LightDM | ecranul de logare **TDM**: `/etc/trinity/tdm/Xstartup` și `Xreset` + serviciul systemd de la pornire |
 
 Configurarea elevului (`~/.trinity/share/config/`) e scrisă de script: `kickerrc` (bara),
-`ktaskbarrc`, `kdeglobals` (culori, iconițe, limbă), `twinrc` (ferestre), `kdesktoprc`
+`ktaskbarrc`, `kdeglobals` (culori, iconițe), `twinrc` (ferestre), `kdesktoprc`
 (fundal), `kxkbrc` (tastatură). Q4OS mută `XDG_CONFIG_HOME` în `~/.configtde`, de aceea
-setările LibreOffice și GTK sunt puse și acolo.
+setările GTK sunt puse și acolo.
 
 Fișierele originale ale TDM sunt păstrate ca `/etc/trinity/tdm/*.inainte-de-sala`.
