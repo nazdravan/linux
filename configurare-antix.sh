@@ -124,8 +124,8 @@ instaleaza_pachete() {
 
     apt-get "${apt_opt[@]}" install --no-install-recommends \
         rsync unzip wget python3 earlyoom util-linux \
-        firefox-esr drawing
-    ok "Firefox, Drawing (în loc de Paint), earlyoom"
+        firefox-esr drawing vlc
+    ok "Firefox, Drawing (în loc de Paint), VLC, earlyoom"
 
 }
 

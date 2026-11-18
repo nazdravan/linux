@@ -134,6 +134,10 @@ instaleaza_pachete() {
     apt-get "${apt_opt[@]}" install --no-install-recommends kolourpaint
     ok "KolourPaint (în loc de Paint)"
 
+    # VLC (filme, muzică), fără pachetele recomandate (limbi, pluginuri rar folosite).
+    if apt-get "${apt_opt[@]}" install --no-install-recommends vlc; then ok "VLC"
+    else avert "Nu am putut instala VLC"; PASI_ESUATI+=("VLC"); fi
+
 }
 
 # =============================================================================

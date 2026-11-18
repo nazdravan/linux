@@ -126,8 +126,8 @@ instaleaza_pachete() {
 
     apt-get "${apt_opt[@]}" install --no-install-recommends \
         rsync unzip wget python3 zram-tools earlyoom \
-        firefox-esr kolourpaint-trinity
-    ok "Firefox, KolourPaint (în loc de Paint), zram, earlyoom"
+        firefox-esr kolourpaint-trinity vlc
+    ok "Firefox, KolourPaint (în loc de Paint), VLC, zram, earlyoom"
 
 }
 

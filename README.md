@@ -21,7 +21,7 @@ Mai jos e descrisă varianta Mint; diferențele sunt la [Varianta antiX](#varian
 | | |
 |---|---|
 | **Aspect Windows 10** | bara jos, meniu Start, ceas și dată în dreapta, „Arată desktopul" în colț, temă și iconițe Windows 10, fundal albastru, un singur spațiu de lucru |
-| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), PDFCraft (PDF), LibreOffice de rezervă, KolourPaint (în loc de Paint), Firefox și Chromium; pentru algoritmi și programare **Cangurul**, **Furnica**, **Thonny** (Python) și **Visual Studio Code** |
+| **Programe** | [ArtCraft](https://getartcraft.com/apps) WordCraft / GridCraft / DeckCraft (în loc de Word / Excel / PowerPoint), PDFCraft (PDF), LibreOffice de rezervă, KolourPaint (în loc de Paint), Firefox și Chromium, VLC (filme, muzică); pentru algoritmi și programare **Cangurul**, **Furnica**, **Thonny** (Python) și **Visual Studio Code** |
 | **Ca în Office** | WordCraft, GridCraft și DeckCraft au panglică ca Office și lucrează direct cu **.docx, .xlsx, .pptx**; se descarcă de pe GitHub (ultima versiune, verificată cu SHA256) |
 | **2 GB RAM + HDD** | zram (memorie comprimată), earlyoom (închide o filă de browser în loc să blocheze calculatorul; nu închide niciodată programele de birou), BFQ pentru HDD, fără efecte grafice, Firefox cu uBlock Origin și mai puține procese |
 | **Limbă și tastatură** | sistemul rămâne în limba aleasă la instalare (engleză); se adaugă tastatura Română (standard) lângă US, care rămâne implicită; comutare cu **Alt+Shift** |
