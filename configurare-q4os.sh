@@ -295,6 +295,20 @@ EOF
     modprobe bfq 2>/dev/null || true
     ok "BFQ pentru HDD"
 
+    # GRUB: pornește direct, fără să aștepte la meniu.
+    if [ -d /etc/default/grub.d ] || [ -f /etc/default/grub ]; then
+        install -d /etc/default/grub.d
+        cat > /etc/default/grub.d/90-sala.cfg <<'EOF'
+# Configurat de configurare-q4os.sh: fără așteptare la meniul GRUB
+GRUB_TIMEOUT=0
+GRUB_TIMEOUT_STYLE=hidden
+GRUB_RECORDFAIL_TIMEOUT=0
+EOF
+        if command -v update-grub >/dev/null 2>&1; then
+            if update-grub >/dev/null 2>&1; then ok "GRUB: 0 secunde la pornire"; else avert "Nu a reușit: update-grub"; PASI_ESUATI+=("GRUB"); fi
+        fi
+    fi
+
     local politica d
     politica='{
   "policies": {

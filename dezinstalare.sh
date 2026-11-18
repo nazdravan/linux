@@ -124,7 +124,7 @@ if [ -d "$LUCRARI_DIR" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-pas "Memorie, disc, Firefox, Chromium"
+pas "Memorie, disc, GRUB, Firefox, Chromium"
 sterge /etc/sysctl.d/90-sala-zram.conf /etc/modules-load.d/sala-bfq.conf /etc/udev/rules.d/60-sala-hdd-bfq.rules
 if [ -f /etc/antix-version ] && grep -x bfq /etc/modules >/dev/null 2>&1; then
     sed -i '/^bfq$/d' /etc/modules && ok "Scos bfq din /etc/modules"
@@ -144,6 +144,13 @@ if are_systemd && [ -f /etc/linuxmint/info ]; then
     for s in ModemManager.service cups-browsed.service; do
         if systemctl cat "$s" >/dev/null 2>&1; then systemctl enable "$s" >/dev/null 2>&1 && ok "Repornit serviciul $s"; fi
     done
+fi
+# GRUB: revine la așteptarea implicită.
+if [ -f /etc/default/grub.d/90-sala.cfg ]; then
+    sterge /etc/default/grub.d/90-sala.cfg
+    if command -v update-grub >/dev/null 2>&1; then
+        if update-grub >/dev/null 2>&1; then ok "GRUB actualizat"; else avert "update-grub nu a reușit"; fi
+    fi
 fi
 avert "zram și earlyoom rămân instalate (ajută și fără sală). Le scoți cu: sudo apt purge zram-tools earlyoom"
 
