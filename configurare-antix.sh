@@ -25,7 +25,9 @@ LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge ("" = făr
 TASTATURI="${TASTATURI:-us,ro}"
 VARIANTE="${VARIANTE:-,std}"
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
-ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft}"   # programe de birou (getartcraft.com/apps)
+ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft pdfcraft}"   # programe ArtCraft (getartcraft.com/apps)
+THONNY="${THONNY:-1}"                    # 1 = Thonny (Python pentru începători)
+VSCODE="${VSCODE:-1}"                    # 1 = Visual Studio Code
 LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"              # 1 = descarcă tema GTK și iconițele Windows 10
 ACTUALIZARE="${ACTUALIZARE:-1}"            # 1 = instalează și actualizările sistemului
@@ -127,7 +129,7 @@ instaleaza_pachete() {
 
 # =============================================================================
 # WordCraft, GridCraft, DeckCraft (https://getartcraft.com/apps) în loc de Word, Excel,
-# PowerPoint. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
+# PowerPoint, plus PDFCraft pentru PDF-uri. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
 # cu SHA256SUMS.txt al versiunii și îl instalăm cu apt (care aduce și dependențele).
 instaleaza_artcraft() {
     pas "Programe de birou ArtCraft: ${ARTCRAFT:-niciunul}"
@@ -190,6 +192,34 @@ instaleaza_libreoffice() {
 }
 
 # =============================================================================
+# Programare: Thonny (Python, din depozitele distribuției) și Visual Studio Code (pachetul
+# oficial Microsoft; la instalare își adaugă singur depozitul packages.microsoft.com, deci
+# se actualizează apoi prin apt, ca restul sistemului).
+instaleaza_programare() {
+    pas "Programare: Thonny, Visual Studio Code"
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    if [ "$THONNY" = "1" ]; then
+        if apt-get "${apt_opt[@]}" install --no-install-recommends thonny; then ok "Thonny"
+        else avert "Nu am putut instala Thonny"; PASI_ESUATI+=("Thonny"); fi
+    fi
+    [ "$VSCODE" = "1" ] || return 0
+    if dpkg-query -W -f='${Status}' code 2>/dev/null | grep 'ok installed' >/dev/null; then
+        ok "Visual Studio Code este deja instalat (se actualizează prin apt)"; return 0
+    fi
+    local tmp; tmp="$(mktemp -d)"; chmod 755 "$tmp"
+    # Fără comanda „copilot" pusă în PATH pentru elevi.
+    echo "code code/add-copilot-command boolean false" | debconf-set-selections 2>/dev/null || true
+    if wget -q -O "$tmp/code.deb" "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64" \
+       && dpkg-deb -f "$tmp/code.deb" Package 2>/dev/null | grep -x code >/dev/null \
+       && apt-get "${apt_opt[@]}" install --no-install-recommends "$tmp/code.deb"; then
+        ok "Visual Studio Code $(dpkg-query -W -f='${Version}' code 2>/dev/null | cut -d- -f1)"
+    else
+        avert "Nu am putut instala Visual Studio Code"; PASI_ESUATI+=("Visual Studio Code")
+    fi
+    rm -rf "$tmp"
+}
+
+# =============================================================================
 optimizeaza_memoria() {
     pas "Optimizez pentru 2 GB RAM și HDD"
 
@@ -202,7 +232,7 @@ EOF
     cat > /etc/default/earlyoom <<'EOF'
 # Configurat de configurare-antix.sh. Închide o filă de browser când se termină
 # memoria; nu închide niciodată WordCraft, GridCraft, DeckCraft sau Drawing (lucrarea elevului).
-EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|runit|runsv|Xorg|slimski|icewm|zzzfm|wordcraft|gridcraft|deckcraft|soffice.bin|drawing)$'"
+EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|runit|runsv|Xorg|slimski|icewm|zzzfm|wordcraft|gridcraft|deckcraft|soffice.bin|thonny|code|drawing)$'"
 EOF
 
     # zram + earlyoom fără să depindem de sistemul de inițializare: le pornește
@@ -529,9 +559,11 @@ construieste_sablon() {
     rm -rf "$S"; install -d -m 700 "$DATE_DIR"; install -d "$S"
     cp -a /etc/skel/. "$S"/
 
-    local I_WORD I_EXCEL I_PPT I_PAINT I_WEB I_FM I_TOATE
+    local I_WORD I_EXCEL I_PPT I_PDF I_PAINT I_THONNY I_CODE I_WEB I_FM I_TOATE
     I_WORD="$(iconita ai.storyteller.wordcraft)"; I_EXCEL="$(iconita ai.storyteller.gridcraft)"
     I_PPT="$(iconita ai.storyteller.deckcraft)"; I_PAINT="$(iconita com.github.maoschanz.drawing)"
+    I_PDF="$(iconita ai.storyteller.pdfcraft)"; I_THONNY="$(iconita thonny)"
+    I_CODE="$(iconita vscode)"
     I_WEB="$(iconita firefox-esr)"; I_FM="$(iconita system-file-manager)"
     I_TOATE="$(iconita applications-all)"
 
@@ -569,7 +601,10 @@ EOF
 prog "Documente — WordCraft" $I_WORD wordcraft
 prog "Tabele — GridCraft" $I_EXCEL gridcraft
 prog "Prezentări — DeckCraft" $I_PPT deckcraft
+prog "PDF — PDFCraft" $I_PDF pdfcraft
 prog "Desen — Drawing" $I_PAINT drawing
+prog "Python — Thonny" $I_THONNY thonny
+prog "Programare — Visual Studio Code" $I_CODE code
 prog "Internet — Firefox" $I_WEB firefox-esr
 prog "Fișiere" $I_FM desktop-defaults-run -fm
 separator
@@ -626,9 +661,28 @@ ai.storyteller.wordcraft|Documente (WordCraft)
 ai.storyteller.gridcraft|Tabele (GridCraft)
 ai.storyteller.deckcraft|Prezentări (DeckCraft)
 com.github.maoschanz.drawing|Desen
+org.thonny.Thonny|Python (Thonny)
+code|Visual Studio Code
 firefox-esr|Internet (Firefox)
 LISTA
     [ -n "$LUCRARI_DIR" ] && ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
+
+    # --- Visual Studio Code: fără telemetrie, fără pagina de bun-venit, fără keyring --------
+    local vsc
+    for vsc in .config; do
+        scrie "$S/$vsc/Code/User/settings.json" <<'EOF'
+{
+    "telemetry.telemetryLevel": "off",
+    "update.mode": "none",
+    "workbench.startupEditor": "none",
+    "workbench.tips.enabled": false,
+    "extensions.ignoreRecommendations": true,
+    "editor.fontSize": 16
+}
+EOF
+    done
+    # Fără întrebarea despre „keyring" (nu există pe toate desktopurile).
+    printf '{\n    "password-store": "basic"\n}\n' | scrie "$S/.vscode/argv.json"
 
     # --- LibreOffice (de rezervă): interfață cu file și salvare în formatele Office -------
     scrie "$S/.config/libreoffice/4/user/registrymodifications.xcu" <<'EOF'
@@ -885,6 +939,7 @@ main() {
     instaleaza_pachete
     instaleaza_artcraft
     instaleaza_libreoffice
+    instaleaza_programare
     optimizeaza_memoria
     seteaza_tastatura
     instaleaza_teme

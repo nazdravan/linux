@@ -22,7 +22,9 @@ LUCRARI_DIR="${LUCRARI_DIR:-/srv/lucrari}" # dosar care NU se șterge ("" = făr
 TASTATURI="${TASTATURI:-us,ro}"
 VARIANTE="${VARIANTE:-,std}"
 COMUTARE_TASTATURA="${COMUTARE_TASTATURA:-grp:alt_shift_toggle}"
-ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft}"   # programe de birou (getartcraft.com/apps)
+ARTCRAFT="${ARTCRAFT:-wordcraft gridcraft deckcraft pdfcraft}"   # programe ArtCraft (getartcraft.com/apps)
+THONNY="${THONNY:-1}"                    # 1 = Thonny (Python pentru începători)
+VSCODE="${VSCODE:-1}"                    # 1 = Visual Studio Code
 LIBREOFFICE="${LIBREOFFICE:-1}"          # 1 = și LibreOffice, de rezervă (în meniul cu toate programele)
 TEMA_WIN10="${TEMA_WIN10:-1}"              # 1 = descarcă tema GTK și iconițele Windows 10
 ACTUALIZARE="${ACTUALIZARE:-1}"            # 1 = instalează și actualizările sistemului
@@ -129,7 +131,7 @@ instaleaza_pachete() {
 
 # =============================================================================
 # WordCraft, GridCraft, DeckCraft (https://getartcraft.com/apps) în loc de Word, Excel,
-# PowerPoint. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
+# PowerPoint, plus PDFCraft pentru PDF-uri. Nu sunt în depozitele distribuției: luăm ultimul .deb de pe GitHub, îl verificăm
 # cu SHA256SUMS.txt al versiunii și îl instalăm cu apt (care aduce și dependențele).
 instaleaza_artcraft() {
     pas "Programe de birou ArtCraft: ${ARTCRAFT:-niciunul}"
@@ -192,6 +194,34 @@ instaleaza_libreoffice() {
 }
 
 # =============================================================================
+# Programare: Thonny (Python, din depozitele distribuției) și Visual Studio Code (pachetul
+# oficial Microsoft; la instalare își adaugă singur depozitul packages.microsoft.com, deci
+# se actualizează apoi prin apt, ca restul sistemului).
+instaleaza_programare() {
+    pas "Programare: Thonny, Visual Studio Code"
+    local apt_opt=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+    if [ "$THONNY" = "1" ]; then
+        if apt-get "${apt_opt[@]}" install --no-install-recommends thonny; then ok "Thonny"
+        else avert "Nu am putut instala Thonny"; PASI_ESUATI+=("Thonny"); fi
+    fi
+    [ "$VSCODE" = "1" ] || return 0
+    if dpkg-query -W -f='${Status}' code 2>/dev/null | grep 'ok installed' >/dev/null; then
+        ok "Visual Studio Code este deja instalat (se actualizează prin apt)"; return 0
+    fi
+    local tmp; tmp="$(mktemp -d)"; chmod 755 "$tmp"
+    # Fără comanda „copilot" pusă în PATH pentru elevi.
+    echo "code code/add-copilot-command boolean false" | debconf-set-selections 2>/dev/null || true
+    if wget -q -O "$tmp/code.deb" "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64" \
+       && dpkg-deb -f "$tmp/code.deb" Package 2>/dev/null | grep -x code >/dev/null \
+       && apt-get "${apt_opt[@]}" install --no-install-recommends "$tmp/code.deb"; then
+        ok "Visual Studio Code $(dpkg-query -W -f='${Version}' code 2>/dev/null | cut -d- -f1)"
+    else
+        avert "Nu am putut instala Visual Studio Code"; PASI_ESUATI+=("Visual Studio Code")
+    fi
+    rm -rf "$tmp"
+}
+
+# =============================================================================
 optimizeaza_memoria() {
     pas "Optimizez pentru 2 GB RAM și HDD"
 
@@ -212,7 +242,7 @@ EOF
     cat > /etc/default/earlyoom <<'EOF'
 # Configurat de configurare-q4os.sh. Închide o filă de browser când se termină
 # memoria; nu închide niciodată WordCraft, GridCraft, DeckCraft sau KolourPaint (lucrarea elevului).
-EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|tdm|twin|kicker|kdesktop|tdeinit|wordcraft|gridcraft|deckcraft|soffice.bin|kolourpaint)$'"
+EARLYOOM_ARGS="-r 0 -m 5 -s 10 --prefer '(^|/)(Web Content|Isolated Web Co|WebExtensions)$' --avoid '(^|/)(init|systemd|Xorg|tdm|twin|kicker|kdesktop|tdeinit|wordcraft|gridcraft|deckcraft|soffice.bin|thonny|code|kolourpaint)$'"
 EOF
     if are_systemd; then
         optional "earlyoom pornit" systemctl enable --now earlyoom.service
@@ -470,7 +500,7 @@ Applets2=KMenuButton_1,ServiceButton_1,ServiceButton_2,ServiceButton_3,ServiceBu
 [menus]
 MenuEntryFormat=NameOnly
 FirstRun=true
-Favorites=ai.storyteller.wordcraft.desktop,ai.storyteller.gridcraft.desktop,ai.storyteller.deckcraft.desktop,tde-kolourpaint.desktop,firefox-esr.desktop,tde-Home.desktop
+Favorites=ai.storyteller.wordcraft.desktop,ai.storyteller.gridcraft.desktop,ai.storyteller.deckcraft.desktop,tde-kolourpaint.desktop,org.thonny.Thonny.desktop,code.desktop,firefox-esr.desktop,tde-Home.desktop
 
 [KMenu]
 CustomIcon=$RESURSE/start.png
@@ -702,10 +732,28 @@ LISTA
     local app f
     for app in /usr/share/applications/ai.storyteller.wordcraft.desktop /usr/share/applications/ai.storyteller.gridcraft.desktop \
                /usr/share/applications/ai.storyteller.deckcraft.desktop /opt/trinity/share/applications/tde/kolourpaint.desktop \
+               /usr/share/applications/org.thonny.Thonny.desktop /usr/share/applications/code.desktop \
                /usr/share/applications/firefox-esr.desktop; do
         if [ -e "$app" ]; then install -m 755 "$app" "$S/Desktop/$(basename "$app")"; else avert "Lipsește $app"; fi
     done
     [ -n "$LUCRARI_DIR" ] && ln -sfn "$LUCRARI_DIR" "$S/Desktop/Lucrări (nu se șterg)"
+
+    # --- Visual Studio Code: fără telemetrie, fără pagina de bun-venit, fără keyring --------
+    local vsc
+    for vsc in .config .configtde; do
+        scrie "$S/$vsc/Code/User/settings.json" <<'EOF'
+{
+    "telemetry.telemetryLevel": "off",
+    "update.mode": "none",
+    "workbench.startupEditor": "none",
+    "workbench.tips.enabled": false,
+    "extensions.ignoreRecommendations": true,
+    "editor.fontSize": 16
+}
+EOF
+    done
+    # Fără întrebarea despre „keyring" (nu există pe toate desktopurile).
+    printf '{\n    "password-store": "basic"\n}\n' | scrie "$S/.vscode/argv.json"
 
     # --- LibreOffice (de rezervă): interfață cu file și salvare în formatele Office -------
     # (Q4OS mută XDG_CONFIG_HOME în ~/.configtde, deci punem configurarea în ambele locuri.)
@@ -980,6 +1028,7 @@ main() {
     instaleaza_pachete
     instaleaza_artcraft
     instaleaza_libreoffice
+    instaleaza_programare
     optimizeaza_memoria
     seteaza_tastatura
     instaleaza_teme

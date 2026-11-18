@@ -5,7 +5,8 @@ informatică a școlii: Linux Mint XFCE cu aspect de Windows 10, cont comun „e
 resetează. Utilizatorul (profesor de informatică) scrie în română — răspunde în română.
 
 - Decizii: programele de birou sunt ArtCraft (WordCraft/GridCraft/DeckCraft, `.deb` din
-  `github.com/storytold/<app>/releases/latest`, verificat cu `SHA256SUMS.txt`) — **nu** LibreOffice.
+  `github.com/storytold/<app>/releases/latest`, verificat cu `SHA256SUMS.txt`) — **nu** LibreOffice; și PDFCraft.
+  Programare: Thonny (apt) și VS Code (`.deb` oficial; postinst-ul lui adaugă depozitul Microsoft).
   Limba sistemului rămâne engleza (nu se instalează pachete de limbă română, nu se schimbă locale);
   se adaugă doar tastatura română, cu `us` implicit (`TASTATURI=us,ro`). LibreOffice se instalează
   doar de rezervă (`LIBREOFFICE=1`, fără pachete de limbă, nu pe Desktop). Resetarea refă doar
